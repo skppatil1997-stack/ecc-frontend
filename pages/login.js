@@ -54,18 +54,19 @@ export default function Login() {
         )}
 
         <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={inputStyle}
+             type="email"
+             className="w-full px-4 py-2 border rounded
+             bg-white text-gray-900
+             placeholder-gray-400
+             focus:outline-none focus:ring-2 focus:ring-green-600"
         />
 
         <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={inputStyle}
+             type="password"
+             className="w-full px-4 py-2 border rounded
+             bg-white text-gray-900
+             placeholder-gray-400
+             focus:outline-none focus:ring-2 focus:ring-green-600"
         />
 
         <button onClick={login} style={btnStyle}>
