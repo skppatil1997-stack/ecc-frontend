@@ -1,51 +1,8 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-
-const slides = [
-  {
-    image:
-      "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?auto=format&fit=crop&w=1950&q=80",
-    caption: "Build your squad. Shape your strategy.",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=1950&q=80",
-    caption: "Every bid matters in the auction arena.",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1598514982841-5bde7beecda0?auto=format&fit=crop&w=1950&q=80",
-    caption: "Think smart. Bid smarter.",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?auto=format&fit=crop&w=1950&q=80",
-    caption: "Cricket is more than a game. It’s strategy.",
-  },
-];
 
 export default function Home() {
   const router = useRouter();
-  const [active, setActive] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-
-  // Preload images
-  useEffect(() => {
-    slides.forEach((slide) => {
-      const img = new Image();
-      img.src = slide.image;
-    });
-    setLoaded(true);
-  }, []);
-
-  // Auto slide
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActive((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <>
@@ -53,25 +10,23 @@ export default function Home() {
         <title>Enthusiast Cricket Club</title>
       </Head>
 
-      {/* HERO */}
-      <section className="relative min-h-screen overflow-hidden bg-gray-100">
-        {/* Background Layers */}
-        {slides.map((slide, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
-              index === active ? "opacity-100" : "opacity-0"
-            }`}
-            style={{ backgroundImage: `url(${slide.image})` }}
-          />
-        ))}
+      {/* HERO SECTION */}
+      <section className="relative min-h-screen overflow-hidden">
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?auto=format&fit=crop&w=1950&q=80')",
+          }}
+        />
 
         {/* Light Overlay */}
-        <div className="absolute inset-0 bg-white/70" />
+        <div className="absolute inset-0 bg-white/75" />
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
-          <div className="bg-white/90 backdrop-blur-md rounded-3xl px-10 py-12 shadow-xl max-w-3xl">
+        <div className="relative z-10 flex items-center justify-center min-h-screen px-6 text-center">
+          <div className="bg-white/90 backdrop-blur-md rounded-3xl px-12 py-14 shadow-xl max-w-3xl">
             <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 tracking-wide">
               ENTHUSIAST
               <br />
@@ -79,7 +34,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 text-xl md:text-2xl text-gray-700">
-              {slides[active].caption}
+              A modern cricket auction experience built on strategy and passion
             </p>
 
             <div className="mt-10 flex flex-wrap justify-center gap-6">
@@ -98,28 +53,6 @@ export default function Home() {
               </button>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ABOUT */}
-      <section className="py-24 px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-14 items-center">
-          <div>
-            <h2 className="text-4xl font-bold text-gray-900">
-              Cricket Auctions, Done Right
-            </h2>
-            <p className="mt-6 text-lg text-gray-700 leading-relaxed">
-              Enthusiast Cricket Club brings the thrill of cricket auctions to a
-              clean, modern platform. Create teams, manage budgets, and make
-              strategic bids — all in one place.
-            </p>
-          </div>
-
-          <img
-            src="https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?auto=format&fit=crop&w=1200&q=80"
-            alt="Cricket strategy"
-            className="rounded-3xl shadow-lg"
-          />
         </div>
       </section>
 
