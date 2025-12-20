@@ -1,15 +1,20 @@
 import { useState } from "react";
-import axios from "axios";
 import { useRouter } from "next/router";
+import axios from "axios";
+import Head from "next/head";
 
 export default function Login() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const login = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       const res = await axios.post(
@@ -17,87 +22,108 @@ export default function Login() {
         { email, password }
       );
 
+      // Save token & role
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.user.role);
 
-      if (res.data.role === "ADMIN") {
-        router.push("/admin");
+      // Redirect based on role
+      if (res.data.user.role === "admin") {
+        router.push("/auction");
       } else {
-        router.push("/player");
+        router.push("/auction"); // player view later
       }
     } catch (err) {
       setError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(to right, #020617, #0f172a)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        color: "white"
-      }}
-    >
-      <div style={{ width: "320px" }}>
-        <h1 style={{ color: "#f59e0b", textAlign: "center" }}>
-          Enthusiast Cricket Club
-        </h1>
+    <>
+      <Head>
+        <title>Login | Enthusiast Cricket Club</title>
+      </Head>
 
-        <p style={{ textAlign: "center", marginBottom: 20 }}>
-          Admin & Player Login
-        </p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+          <h1 className="text-3xl font-bold text-gray-900 text-center">
+            Login
+          </h1>
+          <p className="text-gray-600 text-center mt-2">
+            Welcome back to Enthusiast Cricket Club
+          </p>
 
-        {error && (
-          <p style={{ color: "red", textAlign: "center" }}>{error}</p>
-        )}
+          {error && (
+            <div className="mt-4 text-red-600 text-sm text-center">
+              {error}
+            </div>
+          )}
 
-        <input
-             type="email"
-             className="w-full px-4 py-2 border rounded
-             bg-white text-gray-900
-             placeholder-gray-400
-             focus:outline-none focus:ring-2 focus:ring-green-600"
-        />
+          <form onSubmit={handleLogin} className="mt-6 space-y-5">
+            {/* EMAIL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-4 py-2 rounded-lg border
+                           bg-white text-gray-900
+                           placeholder-gray-400
+                           focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </div>
 
-        <input
-             type="password"
-             className="w-full px-4 py-2 border rounded
-             bg-white text-gray-900
-             placeholder-gray-400
-             focus:outline-none focus:ring-2 focus:ring-green-600"
-        />
+            {/* PASSWORD */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full px-4 py-2 rounded-lg border
+                           bg-white text-gray-900
+                           placeholder-gray-400
+                           focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </div>
 
-        <button onClick={login} style={btnStyle}>
-          Login
-        </button>
+            {/* LOGIN BUTTON */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 rounded-lg font-semibold text-white transition
+                ${
+                  loading
+                    ? "bg-green-400 cursor-not-allowed"
+                    : "bg-green-700 hover:bg-green-800"
+                }`}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
 
-        {/* SIGN UP BUTTON */}
-        <button
-          onClick={() => router.push("/signup")}
-          style={{ ...btnStyle, background: "#334155", marginTop: 10 }}
-        >
-          Sign Up
-        </button>
+          {/* SIGNUP LINK */}
+          <p className="text-sm text-center text-gray-600 mt-6">
+            Don’t have an account?{" "}
+            <span
+              onClick={() => router.push("/signup")}
+              className="text-green-700 font-semibold cursor-pointer hover:underline"
+            >
+              Sign up
+            </span>
+          </p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
-
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  marginBottom: "12px",
-  borderRadius: "4px",
-  border: "none"
-};
-
-const btnStyle = {
-  width: "100%",
-  padding: "10px",
-  background: "#f59e0b",
-  border: "none",
-  cursor: "pointer",
-  fontWeight: "bold"
-};
