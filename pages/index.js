@@ -15,8 +15,7 @@ const slides = [
   },
   {
     image:
-      "https://images.unsplash.com/photo-1598514982841-5bde7beecda0?auto=format&fit=crop&w=1950&q=80
-",
+      "https://images.unsplash.com/photo-1598514982841-5bde7beecda0?auto=format&fit=crop&w=1950&q=80",
     caption: "Think smart. Bid smarter.",
   },
   {
