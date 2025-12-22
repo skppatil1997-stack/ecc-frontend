@@ -9,6 +9,8 @@ export default function AdminTeams() {
   const [players, setPlayers] = useState([]);
   const [name, setName] = useState("");
   const [purse, setPurse] = useState("");
+  const [editingTeamId, setEditingTeamId] = useState(null);
+  const [editedPurse, setEditedPurse] = useState("");
   const [loading, setLoading] = useState(true);
 
   // 🔐 Admin guard
@@ -19,7 +21,7 @@ export default function AdminTeams() {
     }
   }, [router]);
 
-  // 📡 Load teams & auction-eligible players
+  // 📡 Load data
   const fetchData = async () => {
     try {
       const [teamsRes, usersRes] = await Promise.all([
@@ -29,8 +31,8 @@ export default function AdminTeams() {
 
       setTeams(teamsRes.data);
       setPlayers(usersRes.data.filter(u => u.isAuctionEligible));
-    } catch (err) {
-      alert("Failed to load teams or players");
+    } catch {
+      alert("Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -42,10 +44,7 @@ export default function AdminTeams() {
 
   // ➕ Create Team
   const createTeam = async () => {
-    if (!name || !purse) {
-      alert("Team name and purse are required");
-      return;
-    }
+    if (!name || !purse) return alert("Name and purse required");
 
     try {
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/teams/create`, {
@@ -60,6 +59,21 @@ export default function AdminTeams() {
     }
   };
 
+  // 💰 Update Purse
+  const updatePurse = async (teamId) => {
+    try {
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/teams/update-purse`,
+        { teamId, purse: editedPurse }
+      );
+      setEditingTeamId(null);
+      setEditedPurse("");
+      fetchData();
+    } catch {
+      alert("Failed to update purse");
+    }
+  };
+
   // 👑 Assign Captain
   const assignCaptain = async (teamId, userId) => {
     try {
@@ -68,12 +82,12 @@ export default function AdminTeams() {
         { teamId, userId }
       );
       fetchData();
-    } catch (err) {
-      alert(err.response?.data?.msg || "Failed to assign captain");
+    } catch {
+      alert("Failed to assign captain");
     }
   };
 
-  // ❌ Remove Captain (NEW)
+  // ❌ Remove Captain
   const removeCaptain = async (teamId) => {
     if (!confirm("Remove captain from this team?")) return;
 
@@ -112,7 +126,6 @@ export default function AdminTeams() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      {/* 🔙 Back */}
       <button
         onClick={() => router.push("/admin")}
         className="mb-6 text-blue-600 hover:underline"
@@ -120,23 +133,17 @@ export default function AdminTeams() {
         ← Back to Admin Dashboard
       </button>
 
-      <h1 className="text-3xl font-bold mb-6">
-        Manage Teams
-      </h1>
+      <h1 className="text-3xl font-bold mb-6">Manage Teams</h1>
 
-      {/* ➕ Create Team */}
+      {/* Create Team */}
       <div className="bg-white p-6 rounded-xl shadow mb-8 max-w-xl">
-        <h2 className="text-xl font-semibold mb-4">
-          Create Team
-        </h2>
-
+        <h2 className="text-xl font-semibold mb-4">Create Team</h2>
         <input
           placeholder="Team Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="border p-2 rounded w-full mb-3"
         />
-
         <input
           type="number"
           placeholder="Purse Amount"
@@ -144,27 +151,20 @@ export default function AdminTeams() {
           onChange={(e) => setPurse(e.target.value)}
           className="border p-2 rounded w-full mb-4"
         />
-
         <button
           onClick={createTeam}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           Create Team
         </button>
       </div>
 
-      {/* 📋 Teams */}
+      {/* Teams */}
       <div className="space-y-6 max-w-4xl">
         {teams.map(team => (
-          <div
-            key={team._id}
-            className="bg-white p-6 rounded-xl shadow"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-2xl font-semibold">
-                {team.name}
-              </h2>
-
+          <div key={team._id} className="bg-white p-6 rounded-xl shadow">
+            <div className="flex justify-between mb-2">
+              <h2 className="text-2xl font-semibold">{team.name}</h2>
               <button
                 onClick={() => deleteTeam(team._id)}
                 className="text-red-600 hover:underline"
@@ -173,14 +173,47 @@ export default function AdminTeams() {
               </button>
             </div>
 
-            <p className="text-gray-600 mb-2">
-              Purse: ₹{team.purse}
-            </p>
+            {/* Purse */}
+            {editingTeamId === team._id ? (
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="number"
+                  value={editedPurse}
+                  onChange={(e) => setEditedPurse(e.target.value)}
+                  className="border p-2 rounded"
+                />
+                <button
+                  onClick={() => updatePurse(team._id)}
+                  className="bg-green-600 text-white px-3 rounded"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingTeamId(null)}
+                  className="text-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <p className="text-gray-700 mb-2">
+                Purse: ₹{team.purse}{" "}
+                <button
+                  onClick={() => {
+                    setEditingTeamId(team._id);
+                    setEditedPurse(team.purse);
+                  }}
+                  className="text-blue-600 ml-2 hover:underline"
+                >
+                  Edit
+                </button>
+              </p>
+            )}
 
-            {/* 👑 Captain Section */}
+            {/* Captain */}
             {team.captain ? (
-              <div className="flex items-center gap-4">
-                <p className="text-green-700 font-medium">
+              <div className="flex gap-4 items-center">
+                <p className="text-green-700">
                   Captain: {team.captain.name}
                 </p>
                 <button
