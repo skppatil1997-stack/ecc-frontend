@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import axios from "axios";
+import api from "@/utils/api";
 
 export default function AdminTeams() {
   const router = useRouter();
@@ -21,17 +21,16 @@ export default function AdminTeams() {
     }
   }, [router]);
 
-  // 📡 Load data
+  // 📡 Load teams + players
   const fetchData = async () => {
     try {
-      const [teamsRes, usersRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/teams`),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/players/users`)
-      ]);
+      const teamsRes = await api.get("/teams");
+      const usersRes = await api.get("/admin/players/users");
 
       setTeams(teamsRes.data);
       setPlayers(usersRes.data.filter(u => u.isAuctionEligible));
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("Failed to load data");
     } finally {
       setLoading(false);
@@ -44,13 +43,13 @@ export default function AdminTeams() {
 
   // ➕ Create Team
   const createTeam = async () => {
-    if (!name || !purse) return alert("Name and purse required");
+    if (!name || !purse) {
+      alert("Team name and purse required");
+      return;
+    }
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/teams/create`, {
-        name,
-        purse
-      });
+      await api.post("/teams/create", { name, purse });
       setName("");
       setPurse("");
       fetchData();
@@ -62,10 +61,10 @@ export default function AdminTeams() {
   // 💰 Update Purse
   const updatePurse = async (teamId) => {
     try {
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/teams/update-purse`,
-        { teamId, purse: editedPurse }
-      );
+      await api.put("/teams/update-purse", {
+        teamId,
+        purse: editedPurse
+      });
       setEditingTeamId(null);
       setEditedPurse("");
       fetchData();
@@ -77,10 +76,10 @@ export default function AdminTeams() {
   // 👑 Assign Captain
   const assignCaptain = async (teamId, userId) => {
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/teams/assign-captain`,
-        { teamId, userId }
-      );
+      await api.post("/teams/assign-captain", {
+        teamId,
+        userId
+      });
       fetchData();
     } catch {
       alert("Failed to assign captain");
@@ -92,10 +91,7 @@ export default function AdminTeams() {
     if (!confirm("Remove captain from this team?")) return;
 
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/teams/remove-captain`,
-        { teamId }
-      );
+      await api.post("/teams/remove-captain", { teamId });
       fetchData();
     } catch {
       alert("Failed to remove captain");
@@ -107,9 +103,7 @@ export default function AdminTeams() {
     if (!confirm("Delete this team permanently?")) return;
 
     try {
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/teams/${teamId}`
-      );
+      await api.delete(`/teams/${teamId}`);
       fetchData();
     } catch {
       alert("Failed to delete team");
@@ -138,12 +132,14 @@ export default function AdminTeams() {
       {/* Create Team */}
       <div className="bg-white p-6 rounded-xl shadow mb-8 max-w-xl">
         <h2 className="text-xl font-semibold mb-4">Create Team</h2>
+
         <input
           placeholder="Team Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="border p-2 rounded w-full mb-3"
         />
+
         <input
           type="number"
           placeholder="Purse Amount"
@@ -151,6 +147,7 @@ export default function AdminTeams() {
           onChange={(e) => setPurse(e.target.value)}
           className="border p-2 rounded w-full mb-4"
         />
+
         <button
           onClick={createTeam}
           className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -159,7 +156,7 @@ export default function AdminTeams() {
         </button>
       </div>
 
-      {/* Teams */}
+      {/* Teams List */}
       <div className="space-y-6 max-w-4xl">
         {teams.map(team => (
           <div key={team._id} className="bg-white p-6 rounded-xl shadow">
@@ -197,7 +194,7 @@ export default function AdminTeams() {
               </div>
             ) : (
               <p className="text-gray-700 mb-2">
-                Purse: ₹{team.purse}{" "}
+                Purse: ₹{team.purse}
                 <button
                   onClick={() => {
                     setEditingTeamId(team._id);
@@ -223,10 +220,6 @@ export default function AdminTeams() {
                   Remove Captain
                 </button>
               </div>
-            ) : players.length === 0 ? (
-              <p className="text-orange-600">
-                No auction-eligible players available
-              </p>
             ) : (
               <select
                 defaultValue=""

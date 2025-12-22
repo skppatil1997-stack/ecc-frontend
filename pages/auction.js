@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { io } from "socket.io-client";
-import axios from "axios";
+import api from "@/utils/api";
 
 let socket;
 
@@ -13,15 +13,21 @@ export default function Auction() {
   const [basePrice, setBasePrice] = useState("");
   const [role, setRole] = useState("");
   const [name, setName] = useState("");
+  const [loadingPlayers, setLoadingPlayers] = useState(true);
 
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     const storedName = localStorage.getItem("name");
 
+    if (!storedRole) {
+      router.push("/login");
+      return;
+    }
+
     setRole(storedRole);
     setName(storedName);
 
-    // 🔌 Connect to Socket.IO
+    // 🔌 Connect Socket
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
     socket.on("auction:update", (data) => {
@@ -37,17 +43,18 @@ export default function Auction() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [router]);
 
-  // 📡 Fetch auction player pool
+  // 📡 Load auction player pool (AUTH REQUIRED)
   const fetchAuctionPlayers = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/auction/players`
-      );
+      const res = await api.get("/admin/auction/players");
       setPlayers(res.data);
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("Failed to load auction players");
+    } finally {
+      setLoadingPlayers(false);
     }
   };
 
@@ -65,14 +72,19 @@ export default function Auction() {
     setBasePrice("");
   };
 
-  // 🎲 Admin requests next player
+  // 🎲 Admin picks next random player
   const nextPlayer = () => {
+    if (players.length === 0) {
+      alert("No players available for auction");
+      return;
+    }
+
     socket.emit("auction:next-player", {
       players
     });
   };
 
-  // 💰 Place bid
+  // 💰 Bid (Captain only)
   const placeBid = (amount) => {
     socket.emit("auction:bid", {
       bidder: name,
@@ -85,10 +97,10 @@ export default function Auction() {
     socket.emit("auction:stop");
   };
 
-  if (!auction) {
+  if (!auction || loadingPlayers) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Connecting to auction...
+        Loading auction...
       </div>
     );
   }
@@ -189,33 +201,35 @@ export default function Auction() {
       )}
 
       {/* Captain Bidding */}
-      {auction.isLive && role === "captain" && auction.currentPlayer && (
-        <div className="bg-white p-6 rounded-xl shadow max-w-xl">
-          <h2 className="text-xl font-semibold mb-4">
-            Place Your Bid
-          </h2>
+      {auction.isLive &&
+        role === "captain" &&
+        auction.currentPlayer && (
+          <div className="bg-white p-6 rounded-xl shadow max-w-xl">
+            <h2 className="text-xl font-semibold mb-4">
+              Place Your Bid
+            </h2>
 
-          <div className="flex gap-4">
-            <button
-              onClick={() =>
-                placeBid(auction.currentBid + 100)
-              }
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-            >
-              + ₹100
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() =>
+                  placeBid(auction.currentBid + 100)
+                }
+                className="bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                + ₹100
+              </button>
 
-            <button
-              onClick={() =>
-                placeBid(auction.currentBid + 1000)
-              }
-              className="bg-purple-600 text-white px-4 py-2 rounded"
-            >
-              + ₹1000
-            </button>
+              <button
+                onClick={() =>
+                  placeBid(auction.currentBid + 1000)
+                }
+                className="bg-purple-600 text-white px-4 py-2 rounded"
+              >
+                + ₹1000
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Spectator */}
       {auction.isLive &&

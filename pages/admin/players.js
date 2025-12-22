@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import axios from "axios";
+import api from "@/utils/api";
 
 export default function AdminPlayers() {
   const router = useRouter();
-  const [users, setUsers] = useState([]);
+
+  const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
 
   // 🔐 Admin guard
   useEffect(() => {
@@ -17,47 +16,33 @@ export default function AdminPlayers() {
     }
   }, [router]);
 
-  // 📡 Fetch users
-  const fetchUsers = async () => {
+  // 📡 Load all users
+  const fetchPlayers = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/players/users`
-      );
-      setUsers(res.data);
-    } catch {
-      setError("Failed to load users");
+      const res = await api.get("/admin/players/users");
+      setPlayers(res.data);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load users");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchPlayers();
   }, []);
 
-  // 🔁 Toggle auction eligibility
-  const toggleEligibility = async (userId, current) => {
+  // ✅ Toggle auction eligibility
+  const toggleEligibility = async (userId, currentValue) => {
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/players/auction-eligibility`,
-        {
-          userId,
-          isAuctionEligible: !current
-        }
-      );
-
-      setUsers((prev) =>
-        prev.map((u) =>
-          u._id === userId
-            ? { ...u, isAuctionEligible: !current }
-            : u
-        )
-      );
-
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      await api.put("/admin/players/eligibility", {
+        userId,
+        isAuctionEligible: !currentValue
+      });
+      fetchPlayers();
     } catch {
-      alert("Failed to update player");
+      alert("Failed to update eligibility");
     }
   };
 
@@ -71,7 +56,6 @@ export default function AdminPlayers() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-
       {/* 🔙 Back */}
       <button
         onClick={() => router.push("/admin")}
@@ -84,62 +68,60 @@ export default function AdminPlayers() {
         Select Auction Players
       </h1>
 
-      {error && (
-        <div className="text-red-600 mb-4">{error}</div>
-      )}
-
-      {saved && (
-        <div className="text-green-600 mb-4">
-          Changes saved
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl shadow overflow-x-auto mb-6">
-        <table className="w-full text-left">
+      <div className="bg-white rounded-xl shadow overflow-hidden max-w-4xl">
+        <table className="w-full">
           <thead className="bg-gray-200">
             <tr>
-              <th className="p-3">Name</th>
-              <th className="p-3">Email</th>
-              <th className="p-3 text-center">
-                Auction Eligible
-              </th>
+              <th className="text-left p-3">Name</th>
+              <th className="text-left p-3">Email</th>
+              <th className="text-center p-3">Auction Eligible</th>
+              <th className="text-center p-3">Action</th>
             </tr>
           </thead>
+
           <tbody>
-            {users.map((user) => (
+            {players.map(player => (
               <tr
-                key={user._id}
+                key={player._id}
                 className="border-b hover:bg-gray-50"
               >
-                <td className="p-3 font-medium">
-                  {user.name}
-                </td>
-                <td className="p-3">{user.email}</td>
+                <td className="p-3">{player.name}</td>
+                <td className="p-3">{player.email}</td>
+
                 <td className="p-3 text-center">
-                  <input
-                    type="checkbox"
-                    checked={user.isAuctionEligible}
-                    onChange={() =>
+                  {player.isAuctionEligible ? "✅" : "❌"}
+                </td>
+
+                <td className="p-3 text-center">
+                  <button
+                    onClick={() =>
                       toggleEligibility(
-                        user._id,
-                        user.isAuctionEligible
+                        player._id,
+                        player.isAuctionEligible
                       )
                     }
-                  />
+                    className={`px-3 py-1 rounded text-white ${
+                      player.isAuctionEligible
+                        ? "bg-red-600"
+                        : "bg-green-600"
+                    }`}
+                  >
+                    {player.isAuctionEligible
+                      ? "Remove"
+                      : "Add"}
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
 
-      {/* ✅ Done Button */}
-      <button
-        onClick={() => router.push("/admin")}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-      >
-        Done
-      </button>
+        {players.length === 0 && (
+          <p className="p-6 text-center text-gray-600">
+            No users found
+          </p>
+        )}
+      </div>
     </div>
   );
 }
