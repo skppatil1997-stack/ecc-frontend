@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { io } from "socket.io-client";
-import api from "@/utils/api";
+import api from "../utils/api";
 
 
 let socket;
