@@ -4,15 +4,20 @@ import axios from "axios";
 
 export default function Login() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      alert("Email and password required");
+      return;
+    }
 
     try {
+      setLoading(true);
+
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
         { email, password }
@@ -20,81 +25,55 @@ export default function Login() {
 
       const { token, user } = res.data;
 
-      // 🔐 Save session
+      // 🔐 Save auth data
       localStorage.setItem("token", token);
-      localStorage.setItem("name", user.name);
-      localStorage.setItem("email", user.email);
       localStorage.setItem("role", user.role);
+      localStorage.setItem("name", user.name);
 
-      // 🚦 Role-based redirect
+      // 🚦 Redirect based on role
       if (user.role === "admin") {
         router.push("/admin");
       } else {
-        router.push("/");
+        router.push("/auction");
       }
     } catch (err) {
-      setError(
-        err.response?.data?.msg ||
-        "Invalid email or password"
-      );
+      alert(err.response?.data?.msg || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-8 rounded-2xl shadow-xl w-96"
-      >
-        <h1 className="text-3xl font-extrabold mb-6 text-center text-blue-900">
-          Enthusiast Cricket Club
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
+      <div className="bg-white p-8 rounded-xl shadow max-w-md w-full">
+        <h1 className="text-3xl font-bold mb-6 text-center">
+          Login
         </h1>
-
-        <p className="text-center text-gray-600 mb-6">
-          Login to continue
-        </p>
-
-        {error && (
-          <div className="text-red-600 mb-4 text-center">
-            {error}
-          </div>
-        )}
 
         <input
           type="email"
           placeholder="Email"
-          className="w-full mb-4 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border p-3 rounded w-full mb-4"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
         />
 
         <input
           type="password"
           placeholder="Password"
-          className="w-full mb-6 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border p-3 rounded w-full mb-6"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
         />
 
         <button
-          type="submit"
-          className="w-full bg-blue-700 text-white py-3 rounded-lg font-semibold hover:bg-blue-800 transition"
+          onClick={handleLogin}
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
-
-        <p className="text-center text-sm text-gray-600 mt-4">
-          Don’t have an account?{" "}
-          <span
-            className="text-blue-700 cursor-pointer font-medium"
-            onClick={() => router.push("/signup")}
-          >
-            Sign up
-          </span>
-        </p>
-      </form>
+      </div>
     </div>
   );
 }
