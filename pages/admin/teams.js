@@ -10,7 +10,6 @@ export default function AdminTeams() {
   const [name, setName] = useState("");
   const [purse, setPurse] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   // 🔐 Admin guard
   useEffect(() => {
@@ -20,7 +19,7 @@ export default function AdminTeams() {
     }
   }, [router]);
 
-  // 📡 Fetch teams + eligible players
+  // 📡 Load teams & auction-eligible players
   const fetchData = async () => {
     try {
       const [teamsRes, usersRes] = await Promise.all([
@@ -31,7 +30,7 @@ export default function AdminTeams() {
       setTeams(teamsRes.data);
       setPlayers(usersRes.data.filter(u => u.isAuctionEligible));
     } catch (err) {
-      setError("Failed to load data");
+      alert("Failed to load teams or players");
     } finally {
       setLoading(false);
     }
@@ -53,7 +52,6 @@ export default function AdminTeams() {
         name,
         purse
       });
-
       setName("");
       setPurse("");
       fetchData();
@@ -75,9 +73,24 @@ export default function AdminTeams() {
     }
   };
 
+  // ❌ Remove Captain (NEW)
+  const removeCaptain = async (teamId) => {
+    if (!confirm("Remove captain from this team?")) return;
+
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/teams/remove-captain`,
+        { teamId }
+      );
+      fetchData();
+    } catch {
+      alert("Failed to remove captain");
+    }
+  };
+
   // 🗑 Delete Team
   const deleteTeam = async (teamId) => {
-    if (!confirm("Are you sure you want to delete this team?")) return;
+    if (!confirm("Delete this team permanently?")) return;
 
     try {
       await axios.delete(
@@ -99,7 +112,6 @@ export default function AdminTeams() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      
       {/* 🔙 Back */}
       <button
         onClick={() => router.push("/admin")}
@@ -114,7 +126,9 @@ export default function AdminTeams() {
 
       {/* ➕ Create Team */}
       <div className="bg-white p-6 rounded-xl shadow mb-8 max-w-xl">
-        <h2 className="text-xl font-semibold mb-4">Create Team</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          Create Team
+        </h2>
 
         <input
           placeholder="Team Name"
@@ -124,10 +138,10 @@ export default function AdminTeams() {
         />
 
         <input
+          type="number"
           placeholder="Purse Amount"
           value={purse}
           onChange={(e) => setPurse(e.target.value)}
-          type="number"
           className="border p-2 rounded w-full mb-4"
         />
 
@@ -139,20 +153,14 @@ export default function AdminTeams() {
         </button>
       </div>
 
-      {/* 📋 Team List */}
+      {/* 📋 Teams */}
       <div className="space-y-6 max-w-4xl">
-        {teams.length === 0 && (
-          <p className="text-gray-600">
-            No teams created yet.
-          </p>
-        )}
-
         {teams.map(team => (
           <div
             key={team._id}
             className="bg-white p-6 rounded-xl shadow"
           >
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-3">
               <h2 className="text-2xl font-semibold">
                 {team.name}
               </h2>
@@ -161,29 +169,38 @@ export default function AdminTeams() {
                 onClick={() => deleteTeam(team._id)}
                 className="text-red-600 hover:underline"
               >
-                Delete
+                Delete Team
               </button>
             </div>
 
-            <p className="mb-3 text-gray-600">
+            <p className="text-gray-600 mb-2">
               Purse: ₹{team.purse}
             </p>
 
+            {/* 👑 Captain Section */}
             {team.captain ? (
-              <p className="text-green-700 font-medium">
-                Captain: {team.captain.name}
-              </p>
+              <div className="flex items-center gap-4">
+                <p className="text-green-700 font-medium">
+                  Captain: {team.captain.name}
+                </p>
+                <button
+                  onClick={() => removeCaptain(team._id)}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  Remove Captain
+                </button>
+              </div>
             ) : players.length === 0 ? (
               <p className="text-orange-600">
                 No auction-eligible players available
               </p>
             ) : (
               <select
-                className="border p-2 rounded max-w-sm"
                 defaultValue=""
                 onChange={(e) =>
                   assignCaptain(team._id, e.target.value)
                 }
+                className="border p-2 rounded max-w-sm"
               >
                 <option value="" disabled>
                   Select Captain
