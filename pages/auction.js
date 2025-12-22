@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { io } from "socket.io-client";
+import axios from "axios";
 
 let socket;
 
@@ -8,51 +9,80 @@ export default function Auction() {
   const router = useRouter();
 
   const [auction, setAuction] = useState(null);
-  const [playerName, setPlayerName] = useState("");
+  const [players, setPlayers] = useState([]);
   const [basePrice, setBasePrice] = useState("");
   const [role, setRole] = useState("");
+  const [name, setName] = useState("");
 
   useEffect(() => {
-    setRole(localStorage.getItem("role"));
+    const storedRole = localStorage.getItem("role");
+    const storedName = localStorage.getItem("name");
 
+    setRole(storedRole);
+    setName(storedName);
+
+    // 🔌 Connect to Socket.IO
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
     socket.on("auction:update", (data) => {
       setAuction(data);
     });
 
+    socket.on("auction:end", (data) => {
+      alert(data.msg);
+    });
+
+    fetchAuctionPlayers();
+
     return () => {
       socket.disconnect();
     };
   }, []);
 
+  // 📡 Fetch auction player pool
+  const fetchAuctionPlayers = async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/auction/players`
+      );
+      setPlayers(res.data);
+    } catch {
+      alert("Failed to load auction players");
+    }
+  };
+
   // 🚀 Admin starts auction
   const startAuction = () => {
-    if (!playerName || !basePrice) {
-      alert("Player name and base price required");
+    if (!basePrice) {
+      alert("Base price required");
       return;
     }
 
     socket.emit("auction:start", {
-      player: { name: playerName },
       basePrice: Number(basePrice)
     });
 
-    setPlayerName("");
     setBasePrice("");
   };
 
-  // ⛔ Admin stops auction
-  const stopAuction = () => {
-    socket.emit("auction:stop");
+  // 🎲 Admin requests next player
+  const nextPlayer = () => {
+    socket.emit("auction:next-player", {
+      players
+    });
   };
 
-  // 💰 Bid
+  // 💰 Place bid
   const placeBid = (amount) => {
     socket.emit("auction:bid", {
-      bidder: localStorage.getItem("name"),
+      bidder: name,
       amount
     });
+  };
+
+  // ⛔ Stop auction
+  const stopAuction = () => {
+    socket.emit("auction:stop");
   };
 
   if (!auction) {
@@ -65,7 +95,6 @@ export default function Auction() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-8">
-
       {/* 🔙 Back */}
       <button
         onClick={() => router.push("/")}
@@ -78,7 +107,7 @@ export default function Auction() {
         Live Auction
       </h1>
 
-      {/* Auction Status */}
+      {/* Status */}
       <div className="bg-white p-6 rounded-xl shadow mb-6 max-w-xl">
         <p className="text-lg">
           Status:{" "}
@@ -94,7 +123,7 @@ export default function Auction() {
         </p>
       </div>
 
-      {/* Current Player */}
+      {/* Player Card */}
       {auction.currentPlayer && (
         <div className="bg-white p-6 rounded-xl shadow mb-6 max-w-xl">
           <h2 className="text-2xl font-semibold mb-2">
@@ -123,13 +152,6 @@ export default function Auction() {
           {!auction.isLive && (
             <>
               <input
-                placeholder="Player Name"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="border p-2 rounded w-full mb-3"
-              />
-
-              <input
                 type="number"
                 placeholder="Base Price"
                 value={basePrice}
@@ -147,18 +169,27 @@ export default function Auction() {
           )}
 
           {auction.isLive && (
-            <button
-              onClick={stopAuction}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-            >
-              Stop Auction
-            </button>
+            <div className="flex gap-4 flex-wrap">
+              <button
+                onClick={nextPlayer}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Next Player
+              </button>
+
+              <button
+                onClick={stopAuction}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Stop Auction
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {/* Bidding Controls */}
-      {auction.isLive && role === "captain" && (
+      {/* Captain Bidding */}
+      {auction.isLive && role === "captain" && auction.currentPlayer && (
         <div className="bg-white p-6 rounded-xl shadow max-w-xl">
           <h2 className="text-xl font-semibold mb-4">
             Place Your Bid
@@ -186,12 +217,12 @@ export default function Auction() {
         </div>
       )}
 
-      {/* Spectator Message */}
+      {/* Spectator */}
       {auction.isLive &&
         role !== "admin" &&
         role !== "captain" && (
           <p className="mt-6 text-gray-600">
-            Auction is live. You are viewing as spectator.
+            Auction is live. You are watching as spectator.
           </p>
         )}
     </div>
