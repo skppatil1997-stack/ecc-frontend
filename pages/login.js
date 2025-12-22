@@ -20,7 +20,7 @@ export default function Login() {
 
       const { token, user } = res.data;
 
-      // 🔐 Store login session
+      // 🔐 Save session
       localStorage.setItem("token", token);
       localStorage.setItem("name", user.name);
       localStorage.setItem("email", user.email);
@@ -41,14 +41,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
       <form
         onSubmit={handleLogin}
-        className="bg-white p-8 rounded-xl shadow w-96"
+        className="bg-white p-8 rounded-2xl shadow-xl w-96"
       >
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          Login
+        <h1 className="text-3xl font-extrabold mb-6 text-center text-blue-900">
+          Enthusiast Cricket Club
         </h1>
+
+        <p className="text-center text-gray-600 mb-6">
+          Login to continue
+        </p>
 
         {error && (
           <div className="text-red-600 mb-4 text-center">
@@ -59,7 +63,7 @@ export default function Login() {
         <input
           type="email"
           placeholder="Email"
-          className="w-full mb-4 p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -68,7 +72,7 @@ export default function Login() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full mb-6 p-2 border rounded"
+          className="w-full mb-6 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -76,10 +80,20 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          className="w-full bg-blue-700 text-white py-3 rounded-lg font-semibold hover:bg-blue-800 transition"
         >
           Login
         </button>
+
+        <p className="text-center text-sm text-gray-600 mt-4">
+          Don’t have an account?{" "}
+          <span
+            className="text-blue-700 cursor-pointer font-medium"
+            onClick={() => router.push("/signup")}
+          >
+            Sign up
+          </span>
+        </p>
       </form>
     </div>
   );
