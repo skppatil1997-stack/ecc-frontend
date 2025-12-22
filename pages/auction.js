@@ -1,119 +1,199 @@
-import Head from "next/head";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { io } from "socket.io-client";
+
+let socket;
 
 export default function Auction() {
+  const router = useRouter();
+
+  const [auction, setAuction] = useState(null);
+  const [playerName, setPlayerName] = useState("");
+  const [basePrice, setBasePrice] = useState("");
+  const [role, setRole] = useState("");
+
+  useEffect(() => {
+    setRole(localStorage.getItem("role"));
+
+    socket = io(process.env.NEXT_PUBLIC_API_URL);
+
+    socket.on("auction:update", (data) => {
+      setAuction(data);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // 🚀 Admin starts auction
+  const startAuction = () => {
+    if (!playerName || !basePrice) {
+      alert("Player name and base price required");
+      return;
+    }
+
+    socket.emit("auction:start", {
+      player: { name: playerName },
+      basePrice: Number(basePrice)
+    });
+
+    setPlayerName("");
+    setBasePrice("");
+  };
+
+  // ⛔ Admin stops auction
+  const stopAuction = () => {
+    socket.emit("auction:stop");
+  };
+
+  // 💰 Bid
+  const placeBid = (amount) => {
+    socket.emit("auction:bid", {
+      bidder: localStorage.getItem("name"),
+      amount
+    });
+  };
+
+  if (!auction) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Connecting to auction...
+      </div>
+    );
+  }
+
   return (
-    <>
-      <Head>
-        <title>ECC Auction Room</title>
-      </Head>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-8">
 
-      {/* HEADER */}
-      <header className="sticky top-0 z-20 bg-white border-b px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">
-          Enthusiast Cricket Club · Auction
-        </h1>
+      {/* 🔙 Back */}
+      <button
+        onClick={() => router.push("/")}
+        className="mb-6 text-blue-600 hover:underline"
+      >
+        ← Back
+      </button>
 
-        <div className="text-sm text-gray-600">
-          Logged in as <span className="font-semibold">Admin</span>
-        </div>
-      </header>
+      <h1 className="text-4xl font-extrabold mb-6 text-blue-900">
+        Live Auction
+      </h1>
 
-      {/* MAIN LAYOUT */}
-      <main className="min-h-screen bg-gray-100 grid grid-cols-12 gap-6 p-6">
+      {/* Auction Status */}
+      <div className="bg-white p-6 rounded-xl shadow mb-6 max-w-xl">
+        <p className="text-lg">
+          Status:{" "}
+          <span
+            className={
+              auction.isLive
+                ? "text-green-600 font-bold"
+                : "text-red-600 font-bold"
+            }
+          >
+            {auction.isLive ? "LIVE" : "NOT LIVE"}
+          </span>
+        </p>
+      </div>
 
-        {/* LEFT: TEAMS */}
-        <section className="col-span-3 bg-white rounded-xl shadow p-4">
-          <h2 className="text-lg font-semibold mb-4">Teams & Purse</h2>
-
-          <ul className="space-y-3 text-sm">
-            <li className="flex justify-between">
-              <span>Mumbai Mavericks</span>
-              <span className="font-semibold">₹18,50,000</span>
-            </li>
-            <li className="flex justify-between">
-              <span>Delhi Dynamos</span>
-              <span className="font-semibold">₹21,00,000</span>
-            </li>
-            <li className="flex justify-between">
-              <span>Chennai Chargers</span>
-              <span className="font-semibold">₹15,75,000</span>
-            </li>
-            <li className="flex justify-between">
-              <span>Pune Panthers</span>
-              <span className="font-semibold">₹19,20,000</span>
-            </li>
-          </ul>
-        </section>
-
-        {/* CENTER: PLAYER CARD */}
-        <section className="col-span-6 bg-white rounded-xl shadow p-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Rohit Sharma
+      {/* Current Player */}
+      {auction.currentPlayer && (
+        <div className="bg-white p-6 rounded-xl shadow mb-6 max-w-xl">
+          <h2 className="text-2xl font-semibold mb-2">
+            Player on Auction
           </h2>
-          <p className="text-gray-600 mt-1">
-            Batsman · Right Hand
+          <p className="text-xl font-bold">
+            {auction.currentPlayer.name}
           </p>
+          <p className="mt-2">
+            Current Bid: ₹{auction.currentBid}
+          </p>
+          <p className="mt-1 text-gray-600">
+            Highest Bidder:{" "}
+            {auction.highestBidder || "None"}
+          </p>
+        </div>
+      )}
 
-          <div className="mt-6">
-            <p className="text-sm text-gray-500">Base Price</p>
-            <p className="text-xl font-semibold">₹2,00,000</p>
-          </div>
-
-          <div className="mt-8">
-            <p className="text-sm text-gray-500">Current Bid</p>
-            <p className="text-4xl font-bold text-green-700">
-              ₹4,50,000
-            </p>
-          </div>
-
-          {/* BID CONTROLS (ADMIN) */}
-          <div className="mt-10 flex justify-center gap-4">
-            <button className="px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700">
-              + ₹1,00,000
-            </button>
-            <button className="px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700">
-              + ₹2,00,000
-            </button>
-            <button className="px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700">
-              + ₹5,00,000
-            </button>
-          </div>
-
-          {/* ADMIN CONTROLS */}
-          <div className="mt-8 flex justify-center gap-4">
-            <button className="px-5 py-2 rounded-md border border-gray-300 hover:bg-gray-100">
-              Next Player
-            </button>
-            <button className="px-5 py-2 rounded-md bg-red-600 text-white hover:bg-red-700">
-              End Auction
-            </button>
-          </div>
-        </section>
-
-        {/* RIGHT: ACTIVITY */}
-        <section className="col-span-3 bg-white rounded-xl shadow p-4 flex flex-col">
-          <h2 className="text-lg font-semibold mb-4">
-            Live Activity
+      {/* Admin Controls */}
+      {role === "admin" && (
+        <div className="bg-white p-6 rounded-xl shadow mb-6 max-w-xl">
+          <h2 className="text-xl font-semibold mb-4">
+            Admin Controls
           </h2>
 
-          {/* BIDDING HISTORY */}
-          <div className="flex-1 overflow-y-auto text-sm space-y-2 mb-4">
-            <p>₹4,50,000 – Mumbai Mavericks</p>
-            <p>₹4,00,000 – Delhi Dynamos</p>
-            <p>₹3,50,000 – Pune Panthers</p>
-          </div>
+          {!auction.isLive && (
+            <>
+              <input
+                placeholder="Player Name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="border p-2 rounded w-full mb-3"
+              />
 
-          {/* CHAT (STATIC) */}
-          <div className="border-t pt-3 text-sm">
-            <p className="text-gray-600">Live Chat</p>
-            <div className="mt-2 space-y-1 text-gray-700">
-              <p><strong>Amit:</strong> Big buy 👀</p>
-              <p><strong>Ravi:</strong> Worth it</p>
-            </div>
-          </div>
-        </section>
+              <input
+                type="number"
+                placeholder="Base Price"
+                value={basePrice}
+                onChange={(e) => setBasePrice(e.target.value)}
+                className="border p-2 rounded w-full mb-4"
+              />
 
-      </main>
-    </>
+              <button
+                onClick={startAuction}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Start Auction
+              </button>
+            </>
+          )}
+
+          {auction.isLive && (
+            <button
+              onClick={stopAuction}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Stop Auction
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Bidding Controls */}
+      {auction.isLive && role === "captain" && (
+        <div className="bg-white p-6 rounded-xl shadow max-w-xl">
+          <h2 className="text-xl font-semibold mb-4">
+            Place Your Bid
+          </h2>
+
+          <div className="flex gap-4">
+            <button
+              onClick={() =>
+                placeBid(auction.currentBid + 100)
+              }
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              + ₹100
+            </button>
+
+            <button
+              onClick={() =>
+                placeBid(auction.currentBid + 1000)
+              }
+              className="bg-purple-600 text-white px-4 py-2 rounded"
+            >
+              + ₹1000
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Spectator Message */}
+      {auction.isLive &&
+        role !== "admin" &&
+        role !== "captain" && (
+          <p className="mt-6 text-gray-600">
+            Auction is live. You are viewing as spectator.
+          </p>
+        )}
+    </div>
   );
 }
