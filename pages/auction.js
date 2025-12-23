@@ -7,8 +7,13 @@ let socket;
 
 export default function LiveAuction() {
   const [auctionState, setAuctionState] = useState(null);
+  const [role, setRole] = useState(null);
+  const [name, setName] = useState("");
 
   useEffect(() => {
+    setRole(localStorage.getItem("role"));
+    setName(localStorage.getItem("name"));
+
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
     socket.on("auction:update", (state) => {
@@ -23,6 +28,22 @@ export default function LiveAuction() {
       socket.disconnect();
     };
   }, []);
+
+  /* =========================
+     PLACE BID
+     ========================= */
+  const placeBid = (amount) => {
+    if (!auctionState?.isLive) return;
+
+    socket.emit("auction:bid", {
+      bidder: name,
+      amount
+    });
+  };
+
+  const canBid =
+    role === "admin" ||
+    (role === "player" && auctionState?.currentPlayer?.isCaptain);
 
   return (
     <>
@@ -53,16 +74,16 @@ export default function LiveAuction() {
           </div>
         )}
 
-        {/* LIVE AUCTION — CENTERED */}
+        {/* LIVE AUCTION */}
         {auctionState?.isLive && auctionState.currentPlayer && (
-          <div className="flex justify-center mt-6">
+          <div className="flex flex-col items-center mt-6 gap-6">
+            {/* PLAYER CARD */}
             <div className="card w-full max-w-2xl text-center">
-              {/* PLAYER INFO */}
               <p className="text-sm text-slate-500 mb-1">
                 Now Bidding
               </p>
 
-              <h2 className="text-2xl font-bold text-slate-900">
+              <h2 className="text-2xl font-bold">
                 {auctionState.currentPlayer.name}
               </h2>
 
@@ -70,7 +91,6 @@ export default function LiveAuction() {
                 {auctionState.currentPlayer.email}
               </p>
 
-              {/* BID INFO */}
               <div className="mt-6">
                 <p className="text-sm text-slate-500">
                   Current Highest Bid
@@ -85,6 +105,37 @@ export default function LiveAuction() {
                 <p className="font-semibold text-lg">
                   {auctionState.highestBidder || "No bids yet"}
                 </p>
+              </div>
+            </div>
+
+            {/* BIDDING CONTROLS */}
+            <div className="card w-full max-w-2xl text-center">
+              <p className="mb-4 font-medium">
+                {canBid
+                  ? "Place your bid"
+                  : "Only captains and admin can bid"}
+              </p>
+
+              <div className="flex justify-center gap-4">
+                <button
+                  className="btn btn-secondary"
+                  disabled={!canBid}
+                  onClick={() =>
+                    placeBid(auctionState.currentBid + 100)
+                  }
+                >
+                  + ₹100
+                </button>
+
+                <button
+                  className="btn btn-primary"
+                  disabled={!canBid}
+                  onClick={() =>
+                    placeBid(auctionState.currentBid + 1000)
+                  }
+                >
+                  + ₹1000
+                </button>
               </div>
             </div>
           </div>
