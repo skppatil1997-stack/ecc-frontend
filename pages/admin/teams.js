@@ -1,57 +1,93 @@
 import { useEffect, useState } from "react";
 import api from "../../utils/api";
 import Navbar from "../../components/Navbar";
+import { useRouter } from "next/router";
 
 export default function AdminTeams() {
+  const router = useRouter();
   const [teams, setTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [purse, setPurse] = useState("");
 
-  const fetchTeams = async () => {
+  const loadTeams = async () => {
     try {
-      // ✅ CORRECT ENDPOINT (matches server.js)
       const res = await api.get("/teams");
       setTeams(res.data);
     } catch (err) {
-      console.error("LOAD TEAMS ERROR:", err);
-      alert("Failed to load data");
-    } finally {
-      setLoading(false);
+      alert("Failed to load teams");
     }
   };
 
   useEffect(() => {
-    fetchTeams();
+    loadTeams();
   }, []);
+
+  const createTeam = async () => {
+    if (!name || !purse) return alert("Name & purse required");
+    await api.post("/teams/create", { name, purse });
+    setName("");
+    setPurse("");
+    loadTeams();
+  };
+
+  const deleteTeam = async (id) => {
+    if (!confirm("Delete this team?")) return;
+    await api.delete(`/teams/${id}`);
+    loadTeams();
+  };
 
   return (
     <>
       <Navbar />
-      <div style={{ padding: "30px" }}>
+      <div style={{ padding: 30 }}>
+        <button onClick={() => router.back()}>⬅ Back</button>
+
         <h2>Manage Teams</h2>
 
-        {loading && <p>Loading teams...</p>}
-
-        {!loading && teams.length === 0 && (
-          <p>No teams created yet.</p>
-        )}
+        <div style={{ marginBottom: 20 }}>
+          <input
+            placeholder="Team Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            placeholder="Purse"
+            type="number"
+            value={purse}
+            onChange={(e) => setPurse(e.target.value)}
+          />
+          <button onClick={createTeam}>Create Team</button>
+        </div>
 
         {teams.map((team) => (
           <div
             key={team._id}
             style={{
-              border: "1px solid #ddd",
-              padding: "15px",
-              marginBottom: "12px",
-              borderRadius: "6px",
-              background: "#fff"
+              border: "1px solid #ccc",
+              padding: 15,
+              marginBottom: 10
             }}
           >
             <h3>{team.name}</h3>
-            <p><strong>Purse:</strong> ₹{team.purse}</p>
+            <p>Purse: ₹{team.purse}</p>
             <p>
-              <strong>Captain:</strong>{" "}
-              {team.captain ? team.captain.name : "Not Assigned"}
+              Captain: {team.captain ? team.captain.name : "Not assigned"}
             </p>
+
+            <button
+              onClick={() =>
+                router.push(`/admin/assign-captain?teamId=${team._id}`)
+              }
+            >
+              Assign / Change Captain
+            </button>
+
+            <button
+              style={{ marginLeft: 10, color: "red" }}
+              onClick={() => deleteTeam(team._id)}
+            >
+              Delete Team
+            </button>
           </div>
         ))}
       </div>

@@ -1,128 +1,65 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import api from "../../utils/api";
-
+import Navbar from "../../components/Navbar";
+import { useRouter } from "next/router";
 
 export default function AdminPlayers() {
   const router = useRouter();
+  const [users, setUsers] = useState([]);
 
-  const [players, setPlayers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // 🔐 Admin guard
-  useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (role !== "admin") {
-      router.push("/login");
-    }
-  }, [router]);
-
-  // 📡 Load all users
-  const fetchPlayers = async () => {
+  const loadUsers = async () => {
     try {
       const res = await api.get("/admin/players/users");
-      setPlayers(res.data);
+      setUsers(res.data);
     } catch (err) {
-      console.error(err);
       alert("Failed to load users");
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPlayers();
+    loadUsers();
   }, []);
 
-  // ✅ Toggle auction eligibility
-  const toggleEligibility = async (userId, currentValue) => {
-    try {
-      await api.put("/admin/players/eligibility", {
-        userId,
-        isAuctionEligible: !currentValue
-      });
-      fetchPlayers();
-    } catch {
-      alert("Failed to update eligibility");
-    }
+  const toggleEligibility = async (userId, value) => {
+    await api.put("/admin/players/eligibility", {
+      userId,
+      isAuctionEligible: value
+    });
+    loadUsers();
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading players...
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      {/* 🔙 Back */}
-      <button
-        onClick={() => router.push("/admin")}
-        className="mb-6 text-blue-600 hover:underline"
-      >
-        ← Back to Admin Dashboard
-      </button>
+    <>
+      <Navbar />
+      <div style={{ padding: 30 }}>
+        <button onClick={() => router.back()}>⬅ Back</button>
 
-      <h1 className="text-3xl font-bold mb-6">
-        Select Auction Players
-      </h1>
+        <h2>Select Auction Players</h2>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden max-w-4xl">
-        <table className="w-full">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="text-left p-3">Name</th>
-              <th className="text-left p-3">Email</th>
-              <th className="text-center p-3">Auction Eligible</th>
-              <th className="text-center p-3">Action</th>
-            </tr>
-          </thead>
+        {users.map((u) => (
+          <div
+            key={u._id}
+            style={{
+              border: "1px solid #ddd",
+              padding: 10,
+              marginBottom: 8
+            }}
+          >
+            <strong>{u.name}</strong> ({u.email})
 
-          <tbody>
-            {players.map(player => (
-              <tr
-                key={player._id}
-                className="border-b hover:bg-gray-50"
-              >
-                <td className="p-3">{player.name}</td>
-                <td className="p-3">{player.email}</td>
-
-                <td className="p-3 text-center">
-                  {player.isAuctionEligible ? "✅" : "❌"}
-                </td>
-
-                <td className="p-3 text-center">
-                  <button
-                    onClick={() =>
-                      toggleEligibility(
-                        player._id,
-                        player.isAuctionEligible
-                      )
-                    }
-                    className={`px-3 py-1 rounded text-white ${
-                      player.isAuctionEligible
-                        ? "bg-red-600"
-                        : "bg-green-600"
-                    }`}
-                  >
-                    {player.isAuctionEligible
-                      ? "Remove"
-                      : "Add"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {players.length === 0 && (
-          <p className="p-6 text-center text-gray-600">
-            No users found
-          </p>
-        )}
+            <label style={{ marginLeft: 10 }}>
+              <input
+                type="checkbox"
+                checked={u.isAuctionEligible || false}
+                onChange={(e) =>
+                  toggleEligibility(u._id, e.target.checked)
+                }
+              />
+              Auction Eligible
+            </label>
+          </div>
+        ))}
       </div>
-    </div>
+    </>
   );
 }
