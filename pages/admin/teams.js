@@ -8,8 +8,8 @@ export default function AdminTeams() {
 
   const fetchTeams = async () => {
     try {
-      // ✅ CORRECT ADMIN ROUTE
-      const res = await api.get("/admin/team");
+      // ✅ CORRECT ENDPOINT (matches server.js)
+      const res = await api.get("/teams");
       setTeams(res.data);
     } catch (err) {
       console.error("LOAD TEAMS ERROR:", err);
