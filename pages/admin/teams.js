@@ -8,7 +8,8 @@ export default function AdminTeams() {
 
   const fetchTeams = async () => {
     try {
-      const res = await api.get("/team");
+      // ✅ CORRECT ADMIN ROUTE
+      const res = await api.get("/admin/team");
       setTeams(res.data);
     } catch (err) {
       console.error("LOAD TEAMS ERROR:", err);
@@ -30,22 +31,25 @@ export default function AdminTeams() {
 
         {loading && <p>Loading teams...</p>}
 
-        {!loading && teams.length === 0 && <p>No teams created yet.</p>}
+        {!loading && teams.length === 0 && (
+          <p>No teams created yet.</p>
+        )}
 
         {teams.map((team) => (
           <div
             key={team._id}
             style={{
-              border: "1px solid #ccc",
+              border: "1px solid #ddd",
               padding: "15px",
-              marginBottom: "10px",
-              borderRadius: "6px"
+              marginBottom: "12px",
+              borderRadius: "6px",
+              background: "#fff"
             }}
           >
             <h3>{team.name}</h3>
-            <p>Purse: ₹{team.purse}</p>
+            <p><strong>Purse:</strong> ₹{team.purse}</p>
             <p>
-              Captain:{" "}
+              <strong>Captain:</strong>{" "}
               {team.captain ? team.captain.name : "Not Assigned"}
             </p>
           </div>
