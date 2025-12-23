@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import api from "../../utils/api";
 import Navbar from "../../components/Navbar";
-import { useRouter } from "next/router";
 
 export default function AdminTeams() {
   const router = useRouter();
   const [teams, setTeams] = useState([]);
-  const [name, setName] = useState("");
-  const [purse, setPurse] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  /* =========================
+     LOAD TEAMS
+     ========================= */
   const loadTeams = async () => {
     try {
       const res = await api.get("/teams");
       setTeams(res.data);
     } catch (err) {
       alert("Failed to load teams");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -22,72 +26,102 @@ export default function AdminTeams() {
     loadTeams();
   }, []);
 
-  const createTeam = async () => {
-    if (!name || !purse) return alert("Name & purse required");
-    await api.post("/teams/create", { name, purse });
-    setName("");
-    setPurse("");
-    loadTeams();
-  };
+  /* =========================
+     DELETE TEAM
+     ========================= */
+  const deleteTeam = async (teamId) => {
+    if (!confirm("Are you sure you want to delete this team?")) return;
 
-  const deleteTeam = async (id) => {
-    if (!confirm("Delete this team?")) return;
-    await api.delete(`/teams/${id}`);
-    loadTeams();
+    try {
+      await api.delete(`/teams/${teamId}`);
+      loadTeams();
+    } catch (err) {
+      alert("Failed to delete team");
+    }
   };
 
   return (
     <>
       <Navbar />
+
       <div style={{ padding: 30 }}>
-        <button onClick={() => router.back()}>⬅ Back</button>
+        <button onClick={() => router.back()} style={{ marginBottom: 20 }}>
+          ⬅ Back
+        </button>
 
         <h2>Manage Teams</h2>
 
-        <div style={{ marginBottom: 20 }}>
-          <input
-            placeholder="Team Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            placeholder="Purse"
-            type="number"
-            value={purse}
-            onChange={(e) => setPurse(e.target.value)}
-          />
-          <button onClick={createTeam}>Create Team</button>
-        </div>
+        {loading && <p>Loading teams...</p>}
+
+        {!loading && teams.length === 0 && (
+          <p>No teams created yet.</p>
+        )}
 
         {teams.map((team) => (
           <div
             key={team._id}
             style={{
-              border: "1px solid #ccc",
+              border: "1px solid #ddd",
               padding: 15,
-              marginBottom: 10
+              marginBottom: 12,
+              borderRadius: 6,
+              background: "#fff"
             }}
           >
             <h3>{team.name}</h3>
-            <p>Purse: ₹{team.purse}</p>
+            <p><strong>Purse:</strong> ₹{team.purse}</p>
             <p>
-              Captain: {team.captain ? team.captain.name : "Not assigned"}
+              <strong>Captain:</strong>{" "}
+              {team.captain ? team.captain.name : "Not Assigned"}
             </p>
 
-            <button
-              onClick={() =>
-                router.push(`/admin/assign-captain?teamId=${team._id}`)
-              }
-            >
-              Assign / Change Captain
-            </button>
+            {/* =========================
+               ACTION BUTTONS
+               ========================= */}
+            <div style={{ marginTop: 10 }}>
+              {/* Edit Team */}
+              <button
+                onClick={() =>
+                  router.push(`/admin/edit-team?teamId=${team._id}`)
+                }
+                style={{ marginRight: 8 }}
+              >
+                Edit Team
+              </button>
 
-            <button
-              style={{ marginLeft: 10, color: "red" }}
-              onClick={() => deleteTeam(team._id)}
-            >
-              Delete Team
-            </button>
+              {/* Assign / Change Captain */}
+              {!team.captain ? (
+                <button
+                  onClick={() =>
+                    router.push(
+                      `/admin/assign-captain?teamId=${team._id}`
+                    )
+                  }
+                  style={{ marginRight: 8 }}
+                >
+                  Assign Captain
+                </button>
+              ) : (
+                <button
+                  onClick={() =>
+                    router.push(
+                      `/admin/assign-captain?teamId=${team._id}`
+                    )
+                  }
+                  style={{ marginRight: 8 }}
+                >
+                  Change Captain
+                </button>
+              )}
+
+              {/* Delete Team */}
+              <button
+                onClick={() => deleteTeam(team._id)}
+                style={{ color: "red" }}
+              >
+                Delete Team
+              </button>
+            </div>
           </div>
         ))}
       </div>
