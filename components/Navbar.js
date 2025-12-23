@@ -14,7 +14,7 @@ export default function Navbar() {
     setName(localStorage.getItem("name"));
   }, []);
 
-  if (!mounted) return null; // 🚨 KEY FIX
+  if (!mounted) return null;
 
   const logout = () => {
     localStorage.clear();
@@ -22,51 +22,67 @@ export default function Navbar() {
   };
 
   return (
-    <div
-      style={{
-        padding: "12px 24px",
-        borderBottom: "1px solid #ddd",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        background: "#fff"
-      }}
-    >
-      {/* LEFT */}
-      <strong
-        style={{ cursor: "pointer" }}
-        onClick={() => router.push("/")}
-      >
-        Enthusiast Cricket Club
-      </strong>
+    <header className="bg-white border-b border-slate-200">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+        {/* LEFT – BRAND */}
+        <div
+          className="font-bold text-lg text-blue-700 cursor-pointer"
+          onClick={() => router.push("/")}
+        >
+          Enthusiast Cricket Club
+        </div>
 
-      {/* CENTER NAV */}
-      {role === "admin" && (
-        <div style={{ display: "flex", gap: 15 }}>
-          <button onClick={() => router.push("/admin")}>Dashboard</button>
-          <button onClick={() => router.push("/admin/teams")}>
-            Manage Teams
-          </button>
-          <button onClick={() => router.push("/admin/players")}>
-            Auction Players
-          </button>
-          <button onClick={() => router.push("/admin/auction")}>
-            Auction Control
+        {/* CENTER – NAV */}
+        {role === "admin" && (
+          <nav className="flex gap-2">
+            <NavButton label="Dashboard" onClick={() => router.push("/admin")} />
+            <NavButton label="Teams" onClick={() => router.push("/admin/teams")} />
+            <NavButton label="Players" onClick={() => router.push("/admin/players")} />
+            <NavButton
+              label="Auction"
+              onClick={() => router.push("/admin/auction")}
+            />
+          </nav>
+        )}
+
+        {role === "player" && (
+          <nav>
+            <NavButton
+              label="Live Auction"
+              onClick={() => router.push("/auction")}
+            />
+          </nav>
+        )}
+
+        {/* RIGHT – USER */}
+        <div className="flex items-center gap-3">
+          {name && (
+            <span className="text-sm text-slate-600">
+              Hi, <strong>{name}</strong>
+            </span>
+          )}
+          <button
+            onClick={logout}
+            className="btn btn-secondary text-sm"
+          >
+            Logout
           </button>
         </div>
-      )}
-
-      {role === "player" && (
-        <button onClick={() => router.push("/auction")}>
-          Live Auction
-        </button>
-      )}
-
-      {/* RIGHT */}
-      <div>
-        {name && <span style={{ marginRight: 10 }}>Hi, {name}</span>}
-        <button onClick={logout}>Logout</button>
       </div>
-    </div>
+    </header>
+  );
+}
+
+/* =========================
+   NAV BUTTON
+   ========================= */
+function NavButton({ label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition"
+    >
+      {label}
+    </button>
   );
 }
