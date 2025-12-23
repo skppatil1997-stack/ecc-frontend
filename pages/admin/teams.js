@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import api from "../../utils/api";
 import Navbar from "../../components/Navbar";
+import PageContainer from "../../components/PageContainer";
 
 export default function AdminTeams() {
   const router = useRouter();
@@ -44,87 +45,73 @@ export default function AdminTeams() {
     <>
       <Navbar />
 
-      <div style={{ padding: 30 }}>
-        <button onClick={() => router.back()} style={{ marginBottom: 20 }}>
-          ⬅ Back
-        </button>
-
-        <h2>Manage Teams</h2>
+      <PageContainer title="Manage Teams">
+        {/* CREATE TEAM */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push("/admin/create-team")}
+            className="btn btn-primary"
+          >
+            + Create Team
+          </button>
+        </div>
 
         {loading && <p>Loading teams...</p>}
 
         {!loading && teams.length === 0 && (
-          <p>No teams created yet.</p>
+          <p className="text-slate-500">No teams created yet.</p>
         )}
 
-        {teams.map((team) => (
-          <div
-            key={team._id}
-            style={{
-              border: "1px solid #ddd",
-              padding: 15,
-              marginBottom: 12,
-              borderRadius: 6,
-              background: "#fff"
-            }}
-          >
-            <h3>{team.name}</h3>
-            <p><strong>Purse:</strong> ₹{team.purse}</p>
-            <p>
-              <strong>Captain:</strong>{" "}
-              {team.captain ? team.captain.name : "Not Assigned"}
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {teams.map((team) => (
+            <div key={team._id} className="card">
+              {/* HEADER */}
+              <div className="flex justify-between items-start mb-3">
+                <h3>{team.name}</h3>
+                <span className="text-sm text-slate-500">
+                  ₹{team.purse}
+                </span>
+              </div>
 
-            {/* =========================
-               ACTION BUTTONS
-               ========================= */}
-            <div style={{ marginTop: 10 }}>
-              {/* Edit Team */}
-              <button
-                onClick={() =>
-                  router.push(`/admin/edit-team?teamId=${team._id}`)
-                }
-                style={{ marginRight: 8 }}
-              >
-                Edit Team
-              </button>
+              {/* DETAILS */}
+              <p className="mb-4">
+                <strong>Captain:</strong>{" "}
+                {team.captain ? team.captain.name : "Not Assigned"}
+              </p>
 
-              {/* Assign / Change Captain */}
-              {!team.captain ? (
+              {/* ACTIONS */}
+              <div className="flex flex-wrap gap-2">
                 <button
+                  className="btn btn-secondary"
+                  onClick={() =>
+                    router.push(`/admin/edit-team?teamId=${team._id}`)
+                  }
+                >
+                  Edit Team
+                </button>
+
+                <button
+                  className="btn btn-secondary"
                   onClick={() =>
                     router.push(
                       `/admin/assign-captain?teamId=${team._id}`
                     )
                   }
-                  style={{ marginRight: 8 }}
                 >
-                  Assign Captain
+                  {team.captain ? "Change Captain" : "Assign Captain"}
                 </button>
-              ) : (
-                <button
-                  onClick={() =>
-                    router.push(
-                      `/admin/assign-captain?teamId=${team._id}`
-                    )
-                  }
-                  style={{ marginRight: 8 }}
-                >
-                  Change Captain
-                </button>
-              )}
 
-              {/* Delete Team */}
-              <button
-                onClick={() => deleteTeam(team._id)}
-                style={{ color: "red" }}
-              >
-                Delete Team
-              </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => deleteTeam(team._id)}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </PageContainer>
     </>
   );
 }
