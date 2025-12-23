@@ -1,39 +1,43 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import api from "../../utils/api";
 import Navbar from "../../components/Navbar";
-import { useRouter } from "next/router";
+import PageContainer from "../../components/PageContainer";
 
-export default function AdminPlayers() {
+export default function AdminTeams() {
   const router = useRouter();
-  const [users, setUsers] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadUsers = async () => {
+  /* =========================
+     LOAD TEAMS
+     ========================= */
+  const loadTeams = async () => {
     try {
-      const res = await api.get("/admin/players/users");
-      setUsers(res.data);
+      const res = await api.get("/teams");
+      setTeams(res.data);
     } catch (err) {
-      console.error("LOAD USERS ERROR:", err);
-      alert("Failed to load users. Check backend routes.");
+      alert("Failed to load teams");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUsers();
+    loadTeams();
   }, []);
 
-  const toggleEligibility = async (userId, value) => {
+  /* =========================
+     DELETE TEAM
+     ========================= */
+  const deleteTeam = async (teamId) => {
+    if (!confirm("Are you sure you want to delete this team?")) return;
+
     try {
-      await api.put("/admin/players/eligibility", {
-        userId,
-        isAuctionEligible: value
-      });
-      loadUsers();
+      await api.delete(`/teams/${teamId}`);
+      loadTeams();
     } catch (err) {
-      console.error("ELIGIBILITY UPDATE ERROR:", err);
-      alert("Failed to update eligibility.");
+      alert("Failed to delete team");
     }
   };
 
@@ -41,46 +45,73 @@ export default function AdminPlayers() {
     <>
       <Navbar />
 
-      <div style={{ padding: "30px" }}>
-        <button onClick={() => router.back()} style={{ marginBottom: "20px" }}>
-          ⬅ Back
-        </button>
+      <PageContainer title="Manage Teams">
+        {/* CREATE TEAM */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push("/admin/create-team")}
+            className="btn btn-primary"
+          >
+            + Create Team
+          </button>
+        </div>
 
-        <h2>Select Auction Players</h2>
+        {loading && <p>Loading teams...</p>}
 
-        {loading && <p>Loading users...</p>}
-
-        {!loading && users.length === 0 && (
-          <p>No users found. Ask players to sign up!</p>
+        {!loading && teams.length === 0 && (
+          <p className="text-slate-500">No teams created yet.</p>
         )}
 
-        {users.map((u) => (
-          <div
-            key={u._id}
-            style={{
-              border: "1px solid #ddd",
-              padding: "12px",
-              marginTop: "10px",
-              borderRadius: "6px",
-              background: "#fff"
-            }}
-          >
-            <strong>{u.name}</strong> — {u.email}
-            <br />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {teams.map((team) => (
+            <div key={team._id} className="card">
+              {/* HEADER */}
+              <div className="flex justify-between items-start mb-3">
+                <h3>{team.name}</h3>
+                <span className="text-sm text-slate-500">
+                  ₹{team.purse}
+                </span>
+              </div>
 
-            <label style={{ marginTop: "8px", display: "inline-block" }}>
-              <input
-                type="checkbox"
-                checked={u.isAuctionEligible || false}
-                onChange={(e) =>
-                  toggleEligibility(u._id, e.target.checked)
-                }
-              />
-              <span style={{ marginLeft: "6px" }}>Auction Eligible</span>
-            </label>
-          </div>
-        ))}
-      </div>
+              {/* DETAILS */}
+              <p className="mb-4">
+                <strong>Captain:</strong>{" "}
+                {team.captain ? team.captain.name : "Not Assigned"}
+              </p>
+
+              {/* ACTIONS */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() =>
+                    router.push(`/admin/edit-team?teamId=${team._id}`)
+                  }
+                >
+                  Edit Team
+                </button>
+
+                <button
+                  className="btn btn-secondary"
+                  onClick={() =>
+                    router.push(
+                      `/admin/assign-captain?teamId=${team._id}`
+                    )
+                  }
+                >
+                  {team.captain ? "Change Captain" : "Assign Captain"}
+                </button>
+
+                <button
+                  className="btn btn-danger"
+                  onClick={() => deleteTeam(team._id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </PageContainer>
     </>
   );
 }
