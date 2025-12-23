@@ -3,13 +3,18 @@ import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const router = useRouter();
+
+  const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState(null);
   const [name, setName] = useState("");
 
   useEffect(() => {
+    setMounted(true);
     setRole(localStorage.getItem("role"));
     setName(localStorage.getItem("name"));
   }, []);
+
+  if (!mounted) return null; // 🚨 KEY FIX
 
   const logout = () => {
     localStorage.clear();
@@ -52,11 +57,9 @@ export default function Navbar() {
       )}
 
       {role === "player" && (
-        <div>
-          <button onClick={() => router.push("/auction")}>
-            Live Auction
-          </button>
-        </div>
+        <button onClick={() => router.push("/auction")}>
+          Live Auction
+        </button>
       )}
 
       {/* RIGHT */}
