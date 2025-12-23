@@ -1,61 +1,61 @@
-import { useEffect } from "react";
 import { useRouter } from "next/router";
+import Navbar from "../../components/Navbar";
 
 export default function AdminDashboard() {
   const router = useRouter();
 
-  useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (role !== "admin") {
-      router.push("/login");
-    }
-  }, [router]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-10">
-      <h1 className="text-4xl font-extrabold mb-10 text-blue-900">
-        Admin Dashboard
-      </h1>
+    <>
+      <Navbar />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-        
-        {/* Manage Teams */}
+      <div style={{ padding: 30 }}>
+        <h2>Admin Dashboard</h2>
+
         <div
-          onClick={() => router.push("/admin/teams")}
-          className="cursor-pointer bg-white border-l-8 border-blue-600 p-8 rounded-2xl shadow hover:shadow-xl transition"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 20,
+            marginTop: 30
+          }}
         >
-          <h2 className="text-2xl font-bold mb-2 text-blue-800">
-            Manage Teams
-          </h2>
-          <p className="text-gray-600">
-            Create teams, assign purse and captains
-          </p>
-        </div>
+          {/* MANAGE TEAMS */}
+          <div
+            style={cardStyle}
+            onClick={() => router.push("/admin/teams")}
+          >
+            <h3>Manage Teams</h3>
+            <p>Create, edit teams and assign captains</p>
+          </div>
 
-        {/* Select Auction Players */}
-        <div
-          onClick={() => router.push("/admin/players")}
-          className="cursor-pointer bg-white border-l-8 border-green-600 p-8 rounded-2xl shadow hover:shadow-xl transition"
-        >
-          <h2 className="text-2xl font-bold mb-2 text-green-800">
-            Select Auction Players
-          </h2>
-          <p className="text-gray-600">
-            Choose which registered players enter the auction
-          </p>
-        </div>
+          {/* AUCTION PLAYERS */}
+          <div
+            style={cardStyle}
+            onClick={() => router.push("/admin/players")}
+          >
+            <h3>Auction Players</h3>
+            <p>Select players eligible for auction</p>
+          </div>
 
-        {/* Auction Control */}
-        <div className="bg-white border-l-8 border-purple-600 p-8 rounded-2xl shadow opacity-70">
-          <h2 className="text-2xl font-bold mb-2 text-purple-800">
-            Auction Control
-          </h2>
-          <p className="text-gray-600">
-            Start, pause and monitor live auction (coming soon)
-          </p>
+          {/* AUCTION CONTROL */}
+          <div
+            style={cardStyle}
+            onClick={() => router.push("/admin/auction")}
+          >
+            <h3>Auction Control</h3>
+            <p>Start auction, pick players, control bidding</p>
+          </div>
         </div>
-
       </div>
-    </div>
+    </>
   );
 }
+
+const cardStyle = {
+  border: "1px solid #ddd",
+  padding: 20,
+  borderRadius: 8,
+  background: "#fff",
+  cursor: "pointer",
+  transition: "all 0.2s ease"
+};
