@@ -49,7 +49,7 @@ export default function Navbar() {
         </div>
 
         {/* CENTER – NAV */}
-        {role === "admin" && (
+        {role === "ADMIN" && (
           <nav className="flex gap-2">
             <NavButton label="Dashboard" onClick={() => router.push("/admin")} />
             <NavButton label="Teams" onClick={() => router.push("/admin/teams")} />
@@ -58,7 +58,7 @@ export default function Navbar() {
           </nav>
         )}
 
-        {role === "player" && (
+        {role === "PLAYER" && (
           <nav>
             <NavButton
               label="Live Auction"
