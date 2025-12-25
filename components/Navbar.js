@@ -8,11 +8,27 @@ export default function Navbar() {
   const [role, setRole] = useState(null);
   const [name, setName] = useState("");
 
+  /* =========================
+     SYNC AUTH STATE
+     ========================= */
   useEffect(() => {
     setMounted(true);
-    setRole(localStorage.getItem("role"));
-    setName(localStorage.getItem("name"));
-  }, []);
+
+    const syncAuth = () => {
+      setRole(localStorage.getItem("role"));
+      setName(localStorage.getItem("name"));
+    };
+
+    // Initial read
+    syncAuth();
+
+    // Re-read on route change
+    router.events.on("routeChangeComplete", syncAuth);
+
+    return () => {
+      router.events.off("routeChangeComplete", syncAuth);
+    };
+  }, [router.events]);
 
   if (!mounted) return null;
 
@@ -38,10 +54,7 @@ export default function Navbar() {
             <NavButton label="Dashboard" onClick={() => router.push("/admin")} />
             <NavButton label="Teams" onClick={() => router.push("/admin/teams")} />
             <NavButton label="Players" onClick={() => router.push("/admin/players")} />
-            <NavButton
-              label="Auction"
-              onClick={() => router.push("/admin/auction")}
-            />
+            <NavButton label="Auction" onClick={() => router.push("/admin/auction")} />
           </nav>
         )}
 
@@ -61,12 +74,14 @@ export default function Navbar() {
               Hi, <strong>{name}</strong>
             </span>
           )}
-          <button
-            onClick={logout}
-            className="btn btn-secondary text-sm"
-          >
-            Logout
-          </button>
+          {role && (
+            <button
+              onClick={logout}
+              className="btn btn-secondary text-sm"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </div>
     </header>
