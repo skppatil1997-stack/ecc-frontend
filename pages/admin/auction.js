@@ -1,21 +1,17 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import io from "socket.io-client";
 import api from "../../utils/api";
 import Navbar from "../../components/Navbar";
+import PageContainer from "../../components/PageContainer";
 
 let socket;
 
-export default function AdminAuctionControl() {
-  const router = useRouter();
-
+export default function AdminAuction() {
   const [auctionState, setAuctionState] = useState(null);
-  const [players, setPlayers] = useState([]);
-  const [basePrice, setBasePrice] = useState(1000);
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  /* =========================
-     SOCKET CONNECT
-     ========================= */
   useEffect(() => {
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
@@ -23,122 +19,129 @@ export default function AdminAuctionControl() {
       setAuctionState(state);
     });
 
-    socket.on("auction:end", (data) => {
-      alert(data.msg);
+    socket.on("auction:sold", () => {
+      setSelectedTeam("");
     });
+
+    loadTeams();
 
     return () => {
       socket.disconnect();
     };
   }, []);
 
+  const loadTeams = async () => {
+    try {
+      const res = await api.get("/teams");
+      setTeams(res.data);
+    } catch (err) {
+      alert("Failed to load teams");
+    }
+  };
+
   /* =========================
-     LOAD AUCTION PLAYERS
+     AUCTION CONTROLS
      ========================= */
-  const loadPlayers = async () => {
+  const startAuction = () => {
+    socket.emit("auction:start", { basePrice: 0 });
+  };
+
+  const nextPlayer = async () => {
     try {
       const res = await api.get("/admin/auction/players");
-      setPlayers(res.data);
-    } catch (err) {
+      socket.emit("auction:next-player", {
+        players: res.data
+      });
+    } catch {
       alert("Failed to load auction players");
     }
   };
 
-  useEffect(() => {
-    loadPlayers();
-  }, []);
-
-  /* =========================
-     START AUCTION
-     ========================= */
-  const startAuction = () => {
-    socket.emit("auction:start", {
-      basePrice: Number(basePrice)
-    });
-  };
-
-  /* =========================
-     NEXT RANDOM PLAYER
-     ========================= */
-  const nextPlayer = () => {
-    socket.emit("auction:next-player", {
-      players
-    });
-  };
-
-  /* =========================
-     STOP AUCTION
-     ========================= */
   const stopAuction = () => {
     socket.emit("auction:stop");
+  };
+
+  /* =========================
+     SELL PLAYER
+     ========================= */
+  const sellPlayer = async () => {
+    if (!auctionState?.currentPlayer || !selectedTeam) {
+      alert("Select a team first");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await api.post("/auction/sell", {
+        playerId: auctionState.currentPlayer._id,
+        teamId: selectedTeam,
+        price: auctionState.currentBid
+      });
+
+      alert("Player SOLD successfully");
+    } catch (err) {
+      alert(err.response?.data?.msg || "Sell failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
       <Navbar />
 
-      <div style={{ padding: 30 }}>
-        <button onClick={() => router.back()} style={{ marginBottom: 20 }}>
-          ⬅ Back
-        </button>
+      <PageContainer title="Auction Control">
+        {/* AUCTION BUTTONS */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          <button className="btn btn-primary" onClick={startAuction}>
+            Start Auction
+          </button>
 
-        <h2>Admin Auction Control</h2>
+          <button className="btn btn-secondary" onClick={nextPlayer}>
+            Next Player
+          </button>
 
-        {/* =========================
-            AUCTION STATUS
-           ========================= */}
-        <div style={{ marginBottom: 20 }}>
-          <strong>Status:</strong>{" "}
-          {auctionState?.isLive ? "LIVE 🔴" : "NOT LIVE"}
+          <button className="btn btn-danger" onClick={stopAuction}>
+            Stop Auction
+          </button>
         </div>
 
-        {/* =========================
-            START AUCTION
-           ========================= */}
-        {!auctionState?.isLive && (
-          <div style={{ marginBottom: 20 }}>
-            <label>Base Price</label>
-            <input
-              type="number"
-              value={basePrice}
-              onChange={(e) => setBasePrice(e.target.value)}
-              style={{ marginLeft: 10, marginRight: 10 }}
-            />
-            <button onClick={startAuction}>Start Auction</button>
-          </div>
-        )}
+        {/* CURRENT PLAYER */}
+        {auctionState?.currentPlayer && (
+          <div className="card max-w-xl">
+            <h3 className="mb-2">
+              {auctionState.currentPlayer.name}
+            </h3>
 
-        {/* =========================
-            LIVE AUCTION CONTROLS
-           ========================= */}
-        {auctionState?.isLive && (
-          <>
-            <button onClick={nextPlayer} style={{ marginBottom: 20 }}>
-              Next Player
-            </button>
+            <p className="text-sm text-slate-500 mb-2">
+              Current Bid: ₹{auctionState.currentBid}
+            </p>
+
+            {/* TEAM SELECT */}
+            <select
+              className="border p-2 rounded w-full mb-4"
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+            >
+              <option value="">Select Winning Team</option>
+              {teams.map((team) => (
+                <option key={team._id} value={team._id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
 
             <button
-              onClick={stopAuction}
-              style={{ marginLeft: 10, color: "red" }}
+              className="btn btn-primary w-full"
+              onClick={sellPlayer}
+              disabled={loading}
             >
-              Stop Auction
+              {loading ? "Selling..." : "SOLD"}
             </button>
-
-            {auctionState.currentPlayer && (
-              <div style={{ marginTop: 30 }}>
-                <h3>Current Player</h3>
-                <p><strong>Name:</strong> {auctionState.currentPlayer.name}</p>
-                <p><strong>Email:</strong> {auctionState.currentPlayer.email}</p>
-                <p><strong>Current Bid:</strong> ₹{auctionState.currentBid}</p>
-                <p>
-                  <strong>Highest Bidder:</strong>{" "}
-                  {auctionState.highestBidder || "None"}
-                </p>
-              </div>
-            )}
-          </>
+          </div>
         )}
-      </div>
+      </PageContainer>
     </>
   );
 }
