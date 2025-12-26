@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
-import api from "../../utils/api";
 import Navbar from "../../components/Navbar";
 import PageContainer from "../../components/PageContainer";
 
@@ -8,12 +7,12 @@ let socket;
 
 export default function AdminAuction() {
   const [auctionState, setAuctionState] = useState(null);
+  const [playerName, setPlayerName] = useState("");
 
   useEffect(() => {
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
     socket.on("auction:update", (state) => {
-      console.log("📡 Admin auction update:", state);
       setAuctionState(state);
     });
 
@@ -21,12 +20,17 @@ export default function AdminAuction() {
   }, []);
 
   const startAuction = () => {
-    socket.emit("auction:start", { basePrice: 0 });
+    socket.emit("auction:start");
   };
 
-  const nextPlayer = async () => {
-    const res = await api.get("/admin/auction/players");
-    socket.emit("auction:next-player", { players: res.data });
+  const setPlayer = () => {
+    if (!playerName) return alert("Enter player name");
+
+    socket.emit("auction:set-player", {
+      name: playerName
+    });
+
+    setPlayerName("");
   };
 
   const stopAuction = () => {
@@ -37,15 +41,25 @@ export default function AdminAuction() {
     <>
       <Navbar />
       <PageContainer title="Auction Control">
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-3 mb-6">
           <button className="btn btn-primary" onClick={startAuction}>
             Start Auction
           </button>
-          <button className="btn btn-secondary" onClick={nextPlayer}>
-            Next Player
-          </button>
+
           <button className="btn btn-danger" onClick={stopAuction}>
             Stop Auction
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <input
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="Player Name"
+            className="border p-2 rounded mr-2"
+          />
+          <button className="btn btn-secondary" onClick={setPlayer}>
+            Set Player
           </button>
         </div>
 
