@@ -11,7 +11,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Email and password are required");
+      alert("Email and password required");
       return;
     }
 
@@ -26,23 +26,23 @@ export default function Login() {
       const { token, user } = res.data;
 
       /* =========================
-         STORE AUTH DATA
+         SAVE AUTH DATA
          ========================= */
       localStorage.setItem("token", token);
-      localStorage.setItem("role", user.role); // admin | player
+      localStorage.setItem("role", user.role); // admin / player
       localStorage.setItem("name", user.name);
-      localStorage.setItem("userId", user.id);
+      localStorage.setItem("userId", user.id); // 🔥 REQUIRED
 
       /* =========================
-         ROLE BASED REDIRECT
+         REDIRECT
          ========================= */
-      if (user.role === "ADMIN") {
+      if (user.role === "admin") {
         router.push("/admin");
       } else {
         router.push("/auction");
       }
     } catch (err) {
-      alert(err.response?.data?.msg || "Invalid email or password");
+      alert(err.response?.data?.msg || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
       <div className="bg-white p-8 rounded-xl shadow max-w-md w-full">
         <h1 className="text-3xl font-bold mb-6 text-center">
-          Enthusiast Cricket Club
+          Login
         </h1>
 
         <input
@@ -74,7 +74,7 @@ export default function Login() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 disabled:opacity-60"
+          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700"
         >
           {loading ? "Logging in..." : "Login"}
         </button>

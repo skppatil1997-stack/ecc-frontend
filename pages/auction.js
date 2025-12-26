@@ -7,16 +7,12 @@ let socket;
 
 export default function Auction() {
   const [auctionState, setAuctionState] = useState(null);
-  const [user, setUser] = useState(null);
-  const [canBid, setCanBid] = useState(false);
+  const [role, setRole] = useState(null);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    const role = localStorage.getItem("role");
-    const name = localStorage.getItem("name");
-    const userId = localStorage.getItem("userId");
-    const teamId = localStorage.getItem("teamId");
-
-    setUser({ role, name, userId, teamId });
+    setRole(localStorage.getItem("role"));   // admin / player
+    setUserId(localStorage.getItem("userId"));
 
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
@@ -28,38 +24,21 @@ export default function Auction() {
   }, []);
 
   /* =========================
-     DETERMINE BID RIGHTS
+     BID PERMISSION
      ========================= */
-  useEffect(() => {
-    if (!user || !auctionState?.isLive) {
-      setCanBid(false);
-      return;
-    }
-
-    // Admin can bid
-    if (user.role === "admin") {
-      setCanBid(true);
-      return;
-    }
-
-    // Captain can bid
-    if (user.role === "player" && user.teamId) {
-      setCanBid(true);
-      return;
-    }
-
-    setCanBid(false);
-  }, [user, auctionState]);
+  const canBid =
+    auctionState?.isLive &&
+    auctionState?.currentPlayer &&
+    (role === "admin" || role === "player");
 
   const placeBid = (increment) => {
-    if (!auctionState?.currentPlayer) return;
+    if (!canBid) return;
 
     const newAmount = auctionState.currentBid + increment;
 
     socket.emit("auction:bid", {
       bidder: {
-        userId: user.userId,
-        teamId: user.teamId
+        userId
       },
       amount: newAmount
     });
@@ -96,7 +75,6 @@ export default function Auction() {
               ₹{auctionState.currentBid}
             </p>
 
-            {/* BID BUTTONS */}
             {canBid ? (
               <div className="flex justify-center gap-4">
                 <button
