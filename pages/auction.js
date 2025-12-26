@@ -6,13 +6,18 @@ import PageContainer from "../components/PageContainer";
 let socket;
 
 export default function AuctionPage() {
-  const [auctionState, setAuctionState] = useState(null);
+  const [auction, setAuction] = useState(null);
+  const name = typeof window !== "undefined" ? localStorage.getItem("name") : "";
+  const role = typeof window !== "undefined" ? localStorage.getItem("role") : "";
+  const isCaptain = typeof window !== "undefined"
+    ? localStorage.getItem("isCaptain") === "true"
+    : false;
 
   useEffect(() => {
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
     socket.on("auction:update", (state) => {
-      setAuctionState(state);
+      setAuction(state);
     });
 
     return () => socket.disconnect();
@@ -20,51 +25,58 @@ export default function AuctionPage() {
 
   const bid = (amount) => {
     socket.emit("auction:bid", {
-      bidder: { name: localStorage.getItem("name") },
-      amount
+      bidderName: name,
+      increment: amount
     });
   };
-
-  if (!auctionState?.isLive) {
-    return (
-      <>
-        <Navbar />
-        <PageContainer title="Live Auction">
-          <p>Auction has not started yet.</p>
-        </PageContainer>
-      </>
-    );
-  }
 
   return (
     <>
       <Navbar />
+
       <PageContainer title="Live Auction">
-        {auctionState.currentPlayer && (
-          <div className="card max-w-md mx-auto text-center">
-            <h2 className="text-xl font-bold">
-              {auctionState.currentPlayer.name}
+        {!auction?.isLive && (
+          <p className="text-center text-slate-500">
+            Auction will start soon…
+          </p>
+        )}
+
+        {auction?.currentPlayer && (
+          <div className="card max-w-xl mx-auto text-center">
+            <h2 className="text-2xl font-bold mb-2">
+              {auction.currentPlayer.name}
             </h2>
 
-            <p className="my-4">
-              Current Bid: ₹{auctionState.currentBid}
+            <p className="text-slate-500 mb-2">
+              Base Price: ₹{auction.basePrice}
             </p>
 
-            <div className="flex justify-center gap-4">
-              <button
-                className="btn btn-primary"
-                onClick={() => bid(auctionState.currentBid + 100)}
-              >
-                +100
-              </button>
+            <p className="text-xl font-semibold mb-4">
+              Current Bid: ₹{auction.currentBid}
+            </p>
 
-              <button
-                className="btn btn-primary"
-                onClick={() => bid(auctionState.currentBid + 1000)}
-              >
-                +1000
-              </button>
-            </div>
+            {auction.highestBidder && (
+              <p className="text-green-600 mb-4">
+                Highest Bid: {auction.highestBidder}
+              </p>
+            )}
+
+            {role === "PLAYER" && isCaptain && (
+              <div className="flex justify-center gap-4">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => bid(100)}
+                >
+                  +100
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => bid(1000)}
+                >
+                  +1000
+                </button>
+              </div>
+            )}
           </div>
         )}
       </PageContainer>

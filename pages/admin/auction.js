@@ -7,71 +7,35 @@ import PageContainer from "../../components/PageContainer";
 let socket;
 
 export default function AdminAuction() {
-  const [auctionState, setAuctionState] = useState(null);
-  const [basePrice, setBasePrice] = useState("");
+  const [auction, setAuction] = useState(null);
   const [players, setPlayers] = useState([]);
-  const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [basePrice, setBasePrice] = useState(1000);
 
-  /* =========================
-     SOCKET CONNECTION
-     ========================= */
   useEffect(() => {
     socket = io(process.env.NEXT_PUBLIC_API_URL);
 
-    socket.on("connect", () => {
-      console.log("✅ Admin socket connected");
+    socket.on("auction:update", (state) => {
+      setAuction(state);
     });
 
-    socket.on("auction:update", (state) => {
-      console.log("📡 Auction update:", state);
-      setAuctionState(state);
-    });
+    loadPlayers();
 
     return () => socket.disconnect();
   }, []);
 
-  /* =========================
-     LOAD AUCTION PLAYERS
-     ========================= */
   const loadPlayers = async () => {
-    try {
-      setLoadingPlayers(true);
-      const res = await api.get("/admin/auction/players");
-      setPlayers(res.data);
-    } catch (err) {
-      alert("Failed to load auction players");
-    } finally {
-      setLoadingPlayers(false);
-    }
+    const res = await api.get("/admin/auction/players");
+    setPlayers(res.data);
   };
 
-  /* =========================
-     AUCTION CONTROLS
-     ========================= */
   const startAuction = () => {
-    if (!basePrice || Number(basePrice) <= 0) {
-      return alert("Enter valid base price");
-    }
-
-    socket.emit("auction:start", {
-      basePrice: Number(basePrice)
-    });
+    socket.emit("auction:start", { basePrice });
   };
 
-  const nextPlayer = async () => {
-    await loadPlayers();
-
-    if (players.length === 0) {
-      return alert("No auction players available");
-    }
-
-    // Pick random player
+  const nextPlayer = () => {
     const random =
       players[Math.floor(Math.random() * players.length)];
-
-    socket.emit("auction:next-player", {
-      player: random
-    });
+    socket.emit("auction:next-player", { player: random });
   };
 
   const stopAuction = () => {
@@ -81,75 +45,34 @@ export default function AdminAuction() {
   return (
     <>
       <Navbar />
-
       <PageContainer title="Auction Control">
-        {/* BASE PRICE */}
-        <div className="mb-6">
-          <label className="block mb-2 font-medium">
-            Base Price (₹)
-          </label>
+        <div className="flex gap-3 mb-6">
           <input
             type="number"
             value={basePrice}
-            onChange={(e) => setBasePrice(e.target.value)}
-            className="border p-2 rounded w-64"
-            placeholder="Enter base price"
+            onChange={(e) => setBasePrice(Number(e.target.value))}
+            className="border p-2 rounded"
           />
-        </div>
-
-        {/* CONTROLS */}
-        <div className="flex flex-wrap gap-4 mb-8">
-          <button
-            className="btn btn-primary"
-            onClick={startAuction}
-          >
-            Start Auction
+          <button className="btn btn-primary" onClick={startAuction}>
+            Start
           </button>
-
-          <button
-            className="btn btn-secondary"
-            onClick={nextPlayer}
-            disabled={!auctionState?.isLive}
-          >
+          <button className="btn btn-secondary" onClick={nextPlayer}>
             Next Player
           </button>
-
-          <button
-            className="btn btn-danger"
-            onClick={stopAuction}
-          >
-            Stop Auction
+          <button className="btn btn-danger" onClick={stopAuction}>
+            Stop
           </button>
         </div>
 
-        {/* CURRENT PLAYER */}
-        {!auctionState?.isLive && (
-          <p className="text-slate-500">
-            Auction will start shortly…
-          </p>
-        )}
-
-        {auctionState?.currentPlayer && (
+        {auction?.currentPlayer && (
           <div className="card max-w-xl">
-            <h3 className="text-xl font-bold mb-2">
-              {auctionState.currentPlayer.name}
-            </h3>
-
-            <p className="mb-1">
-              <strong>Base Price:</strong> ₹
-              {auctionState.basePrice}
-            </p>
-
-            <p className="mb-1">
-              <strong>Current Bid:</strong> ₹
-              {auctionState.currentBid}
-            </p>
-
+            <h2 className="text-xl font-bold">
+              {auction.currentPlayer.name}
+            </h2>
+            <p>Current Bid: ₹{auction.currentBid}</p>
             <p>
-              <strong>Highest Bidder:</strong>{" "}
-              {auctionState.highestBidder
-                ? auctionState.highestBidder.name
-                : "—"}
+              Highest Bidder:{" "}
+              {auction.highestBidder || "—"}
             </p>
           </div>
         )}
