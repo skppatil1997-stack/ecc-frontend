@@ -3,44 +3,39 @@ import io from "socket.io-client";
 import Navbar from "../components/Navbar";
 import PageContainer from "../components/PageContainer";
 
-let socket;
+/* 🔥 SOCKET MUST BE GLOBAL */
+const socket = io(process.env.NEXT_PUBLIC_API_URL, {
+  transports: ["websocket"]
+});
 
 export default function Auction() {
   const [auctionState, setAuctionState] = useState(null);
   const [role, setRole] = useState(null);
-  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    setRole(localStorage.getItem("role"));   // admin / player
-    setUserId(localStorage.getItem("userId"));
-
-    socket = io(process.env.NEXT_PUBLIC_API_URL);
+    setRole(localStorage.getItem("role"));
 
     socket.on("auction:update", (state) => {
+      console.log("📡 Auction update:", state);
       setAuctionState(state);
     });
 
-    return () => socket.disconnect();
+    return () => {
+      socket.off("auction:update");
+    };
   }, []);
 
-  /* =========================
-     BID PERMISSION
-     ========================= */
   const canBid =
     auctionState?.isLive &&
     auctionState?.currentPlayer &&
-    (role === "admin" || role === "player");
+    role === "PLAYER";
 
-  const placeBid = (increment) => {
-    if (!canBid) return;
-
-    const newAmount = auctionState.currentBid + increment;
+  const placeBid = (inc) => {
+    console.log("🟢 Bid clicked:", inc);
 
     socket.emit("auction:bid", {
-      bidder: {
-        userId
-      },
-      amount: newAmount
+      bidder: { role },
+      amount: auctionState.currentBid + inc
     });
   };
 
@@ -49,7 +44,6 @@ export default function Auction() {
       <Navbar />
 
       <PageContainer title="Live Auction">
-        {/* AUCTION STATUS */}
         {auctionState && (
           <div
             className={`mb-4 px-4 py-2 rounded text-center font-semibold ${
@@ -60,18 +54,15 @@ export default function Auction() {
           >
             {auctionState.isLive
               ? "🔴 Auction is LIVE"
-              : "⏳ Auction will start shortly"}
+              : "⏳ Auction not started"}
           </div>
         )}
 
-        {/* PLAYER CARD */}
         {auctionState?.currentPlayer && (
           <div className="card max-w-md mx-auto text-center">
-            <h3 className="mb-2">
-              {auctionState.currentPlayer.name}
-            </h3>
+            <h3>{auctionState.currentPlayer.name}</h3>
 
-            <p className="text-lg font-semibold mb-4">
+            <p className="text-xl font-bold my-3">
               ₹{auctionState.currentBid}
             </p>
 
@@ -92,7 +83,7 @@ export default function Auction() {
               </div>
             ) : (
               <p className="text-slate-500 text-sm">
-                Only captains can bid
+                Bidding disabled
               </p>
             )}
           </div>
