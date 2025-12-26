@@ -3,89 +3,75 @@ import io from "socket.io-client";
 import Navbar from "../components/Navbar";
 import PageContainer from "../components/PageContainer";
 
-/* 🔥 DO NOT FORCE TRANSPORT */
-const socket = io(process.env.NEXT_PUBLIC_API_URL);
+let socket;
 
-export default function Auction() {
+export default function AuctionPage() {
   const [auctionState, setAuctionState] = useState(null);
-  const [role, setRole] = useState(null);
 
   useEffect(() => {
-    setRole(localStorage.getItem("role"));
+    socket = io(process.env.NEXT_PUBLIC_API_URL);
+
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+    });
 
     socket.on("auction:update", (state) => {
       console.log("📡 Auction update:", state);
       setAuctionState(state);
     });
 
-    return () => {
-      socket.off("auction:update");
-    };
+    return () => socket.disconnect();
   }, []);
 
-  const canBid =
-    auctionState?.isLive &&
-    auctionState?.currentPlayer &&
-    role === "player"; // lowercase
+  const placeBid = (increment) => {
+    if (!auctionState?.currentPlayer) return;
 
-  const placeBid = (inc) => {
-    console.log("🟢 Bid clicked:", inc);
+    console.log("🔥 BID CLICKED", increment);
 
     socket.emit("auction:bid", {
       bidder: {
-        role: "PLAYER"
+        name: localStorage.getItem("name"),
+        role: "CAPTAIN"
       },
-      amount: auctionState.currentBid + inc
+      amount: auctionState.currentBid + increment
     });
   };
 
   return (
     <>
       <Navbar />
-
       <PageContainer title="Live Auction">
-        {auctionState && (
-          <div
-            className={`mb-4 px-4 py-2 rounded text-center font-semibold ${
-              auctionState.isLive
-                ? "bg-red-100 text-red-700"
-                : "bg-yellow-100 text-yellow-700"
-            }`}
-          >
-            {auctionState.isLive
-              ? "🔴 Auction is LIVE"
-              : "⏳ Auction not started"}
-          </div>
+        {!auctionState?.isLive && (
+          <p className="text-center text-slate-500">
+            Auction will go live shortly...
+          </p>
         )}
 
         {auctionState?.currentPlayer && (
           <div className="card max-w-md mx-auto text-center">
-            <h3>{auctionState.currentPlayer.name}</h3>
+            <h2 className="text-xl font-bold mb-2">
+              {auctionState.currentPlayer.name}
+            </h2>
 
-            <p className="text-xl font-bold my-3">
-              ₹{auctionState.currentBid}
+            <p className="mb-4">
+              Current Bid: ₹{auctionState.currentBid}
             </p>
 
-            {canBid ? (
-              <div className="flex justify-center gap-4">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => placeBid(100)}
-                >
-                  +100
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => placeBid(1000)}
-                >
-                  +1000
-                </button>
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">
-                Bidding disabled
-              </p>
-            )}
+            <div className="flex justify-center gap-4">
+              <button
+                className="btn btn-primary"
+                onClick={() => placeBid(100)}
+              >
+                +100
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={() => placeBid(1000)}
+              >
+                +1000
+              </button>
+            </div>
           </div>
         )}
       </PageContainer>
