@@ -10,6 +10,7 @@ export default function AdminAuction() {
   const [auctionState, setAuctionState] = useState(null);
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState("");
+  const [basePrice, setBasePrice] = useState(1000);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function AdminAuction() {
     try {
       const res = await api.get("/teams");
       setTeams(res.data);
-    } catch (err) {
+    } catch {
       alert("Failed to load teams");
     }
   };
@@ -43,7 +44,7 @@ export default function AdminAuction() {
      AUCTION CONTROLS
      ========================= */
   const startAuction = () => {
-    socket.emit("auction:start", { basePrice: 0 });
+    socket.emit("auction:start", { basePrice });
   };
 
   const nextPlayer = async () => {
@@ -92,6 +93,34 @@ export default function AdminAuction() {
       <Navbar />
 
       <PageContainer title="Auction Control">
+        {/* AUCTION STATUS */}
+        {auctionState && (
+          <div
+            className={`mb-4 px-4 py-2 rounded-lg text-center font-semibold ${
+              auctionState.isLive
+                ? "bg-red-100 text-red-700"
+                : "bg-yellow-100 text-yellow-700"
+            }`}
+          >
+            {auctionState.isLive
+              ? "🔴 Auction is LIVE"
+              : "⏳ Auction will start shortly"}
+          </div>
+        )}
+
+        {/* BASE PRICE */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">
+            Base Price (₹)
+          </label>
+          <input
+            type="number"
+            className="border p-2 rounded w-48"
+            value={basePrice}
+            onChange={(e) => setBasePrice(Number(e.target.value))}
+          />
+        </div>
+
         {/* AUCTION BUTTONS */}
         <div className="flex flex-wrap gap-4 mb-6">
           <button className="btn btn-primary" onClick={startAuction}>
@@ -118,7 +147,6 @@ export default function AdminAuction() {
               Current Bid: ₹{auctionState.currentBid}
             </p>
 
-            {/* TEAM SELECT */}
             <select
               className="border p-2 rounded w-full mb-4"
               value={selectedTeam}
