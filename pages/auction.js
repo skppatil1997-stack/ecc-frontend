@@ -3,10 +3,8 @@ import io from "socket.io-client";
 import Navbar from "../components/Navbar";
 import PageContainer from "../components/PageContainer";
 
-/* 🔥 SOCKET MUST BE GLOBAL */
-const socket = io(process.env.NEXT_PUBLIC_API_URL, {
-  transports: ["websocket"]
-});
+/* 🔥 DO NOT FORCE TRANSPORT */
+const socket = io(process.env.NEXT_PUBLIC_API_URL);
 
 export default function Auction() {
   const [auctionState, setAuctionState] = useState(null);
@@ -28,13 +26,15 @@ export default function Auction() {
   const canBid =
     auctionState?.isLive &&
     auctionState?.currentPlayer &&
-    role === "PLAYER";
+    role === "player"; // lowercase
 
   const placeBid = (inc) => {
     console.log("🟢 Bid clicked:", inc);
 
     socket.emit("auction:bid", {
-      bidder: { role },
+      bidder: {
+        role: "PLAYER"
+      },
       amount: auctionState.currentBid + inc
     });
   };
