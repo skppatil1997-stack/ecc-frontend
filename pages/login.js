@@ -36,7 +36,7 @@ export default function Login() {
       /* =========================
          REDIRECT
          ========================= */
-      if (user.role === "admin") {
+      if (user.role === "ADMIN") {
         router.push("/admin");
       } else {
         router.push("/auction");
